@@ -42,6 +42,13 @@ namespace SMLReader
             {
                 Console.WriteLine("Usage: dotnet SMLReader.dll [serialPort] [influxDBUrl] [InfluxAuthToken] [influxBucket] [influxOrganization] [PvUrl]");
                 Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0 http://influxdb.fritz.box:8086/ xxxx-xxxxx== myBucket myOrg http://pv.fritz.box");
+
+                //Console.WriteLine("Expecting 6 Parameters, but found " + args.Length);
+                //foreach (string arg in args)
+                //{
+                //    Console.WriteLine("- " + arg);
+                //}
+
                 return;
             }
 
