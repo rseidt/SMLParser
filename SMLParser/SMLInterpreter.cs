@@ -34,19 +34,19 @@ namespace SMLParser
             var l = record as RawSequence;
             result.AbortOnError = (SMLErrorHandling)((SMLValue)l.Items[1]).Value[0];
             result.GroupNo = ((SMLValue)l.Items[2]).Value[0];
-            result.TransactionId = ConvertToByteString(((SMLValue)l.Items[0]).Value);
+            result.TransactionId = ((SMLValue)l.Items[0]).Value;
             result.CRC = BitConverter.ToUInt16(((SMLValue)l.Items[4]).Value,0);
             result.Body = ConvertToMessageBody((RawSequence)l.Items[3]);
             return result;
         }
 
-        private string ConvertToByteString(byte[] value)
-        {
-            string result = "";
-            foreach (byte b in value)
-                result += b.ToString("x2") + " ";
-            return result.Trim();
-        }
+        //private string ConvertToByteString(byte[] value)
+        //{
+        //    string result = "";
+        //    foreach (byte b in value)
+        //        result += b.ToString("x2") + " ";
+        //    return result.Trim();
+        //}
 
         private SMLMessageBody ConvertToMessageBody(RawSequence list)
         {
@@ -81,9 +81,9 @@ namespace SMLParser
             {
                 MessageCodepage = result.CodePage;
             }
-            result.ClientId = ConvertToByteString(((SMLValue)list.Items[1]).Value);
-            result.ReqFileId = ConvertToByteString(((SMLValue)list.Items[2]).Value);
-            result.ServerId = ConvertToByteString(((SMLValue)list.Items[3]).Value);
+            result.ClientId = ((SMLValue)list.Items[1]).Value;
+            result.ReqFileId = ((SMLValue)list.Items[2]).Value;
+            result.ServerId = ((SMLValue)list.Items[3]).Value;
             result.RefTime = ConvertToDateTime((RawSequence)list.Items[4]);
             result.SmlVersion = ((SMLValue)list.Items[5]).Value.Length > 0 ? ((SMLValue)list.Items[5]).Value[0] : new Nullable<byte>();
             return result;
@@ -91,13 +91,13 @@ namespace SMLParser
         private SMLGetListResponse ConvertToGetListResponse(RawSequence list)
         {
             SMLGetListResponse result = new SMLGetListResponse();
-            result.ClientId = ConvertToByteString(((SMLValue)list.Items[0]).Value);
-            result.ServerId = ConvertToByteString(((SMLValue)list.Items[1]).Value);
-            result.ListName = ConvertToByteString(((SMLValue)list.Items[2]).Value);
+            result.ClientId = ((SMLValue)list.Items[0]).Value;
+            result.ServerId = ((SMLValue)list.Items[1]).Value;
+            result.ListName = ((SMLValue)list.Items[2]).Value;
             result.ActSensorTime = ConvertToDateTime((RawSequence)list.Items[3]);
             result.ValList = ConvertToValList((RawSequence)list.Items[4]);
-            result.ListSignature = Encoding.GetEncoding(MessageCodepage).GetString(((SMLValue)list.Items[5]).Value);
-            result.ActGatewayInfo = ConvertToByteString(((SMLValue)list.Items[6]).Value);
+            result.ListSignature = ((SMLValue)list.Items[5]).Value;
+            result.ActGatewayInfo = ((SMLValue)list.Items[6]).Value;
             return result;
         }
 
@@ -107,16 +107,15 @@ namespace SMLParser
             foreach (RawSequence item in list.Items)
             {
                 SMLListEntry entry = new SMLListEntry();
-                entry.ObjName = ConvertToByteString(((SMLValue)item.Items[0]).Value);
+                entry.ObjName = ((SMLValue)item.Items[0]).Value;
                 entry.status = item.Items[1].Length > 0 ? BitConverter.ToUInt64(ExtendTo64Bit(((SMLValue)item.Items[1]).Value),0): new Nullable<ulong>();
                 entry.ValTime = ConvertToDateTime(item.Items[2] as RawSequence);
                 entry.Unit = item.Items[3].Length > 0 ? (SMLUnit)((SMLValue)item.Items[3]).Value[0] : new Nullable<SMLUnit>();
-                entry.Scaler = item.Items[4].Length > 0 ? Convert.ToInt16(((SMLValue)item.Items[4]).Value[0]) : new Nullable<short>();
+                entry.Scaler = item.Items[4].Length > 0 ? (sbyte)((SMLValue)item.Items[4]).Value[0] : new Nullable<sbyte>();
                 entry.Value = (SMLValue)item.Items[5];
                 entry.IntValue = item.Items[5].Type == RawType.LongInteger || item.Items[5].Type == RawType.Integer ? BitConverter.ToInt64(ExtendTo64Bit(((SMLValue)item.Items[5]).Value),0) : new Nullable<long>();
                 entry.UIntValue = item.Items[5].Type == RawType.LongUnsigned || item.Items[5].Type == RawType.Unsigned ? BitConverter.ToUInt64(ExtendTo64Bit(((SMLValue)item.Items[5]).Value),0) : new Nullable<ulong>();
                 entry.StringValue = item.Items[5].Type == RawType.OctetStream || item.Items[5].Type == RawType.LongOctetStream ? Encoding.GetEncoding(MessageCodepage).GetString(((SMLValue)item.Items[5]).Value) : null;
-                entry.ByteString = item.Items[5].Type == RawType.OctetStream || item.Items[5].Type == RawType.LongOctetStream ? ConvertToByteString(((SMLValue)item.Items[5]).Value) : null;
                 entry.BoolValue = item.Items[5].Type == RawType.Boolean ?  ((SMLValue)item.Items[5]).Value[0] != 0x00 : new Nullable<bool>();
                 entry.ObisCode = ObisCode.GetBySMLBytes(((SMLValue)item.Items[0]).Value);
                 entry.ValueSignature = ((SMLValue)item.Items[6]).Value;
@@ -164,9 +163,9 @@ namespace SMLParser
 
         }
 
-        private SMLPublicClose ConvertToCloseResponse(RawSequence list)
+        private SMLClose ConvertToCloseResponse(RawSequence list)
         {
-            SMLPublicClose result = new SMLPublicClose();
+            SMLClose result = new SMLClose();
             result.GlobalSignature = ((SMLValue)list.Items[0]).Value;
             return result;
         }

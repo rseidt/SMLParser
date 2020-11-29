@@ -6,13 +6,13 @@ namespace SMLParser
 {
     public class SMLGetListResponse : SMLMessageBody
     {
-        public string ClientId { get; set; }
-        public string ServerId { get; set; }
-        public string ListName { get; set; }
+        public byte[] ClientId { get; set; }
+        public byte[] ServerId { get; set; }
+        public byte[] ListName { get; set; }
         public DateTime? ActSensorTime { get; set; }
         public List<SMLListEntry> ValList { get; set; }
-        public string ListSignature { get; set; }
-        public string ActGatewayInfo { get; set; }
+        public byte[] ListSignature { get; set; }
+        public byte[] ActGatewayInfo { get; set; }
 
     }
 }

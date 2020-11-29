@@ -4,8 +4,9 @@ using System.Text;
 
 namespace SMLParser
 {
-    public class SMLPublicClose : SMLMessageBody
+    class RawCrc:RawRecord
     {
-        public byte[] GlobalSignature { get; set; }
+        public ushort CRC { get; set; }
+        public override int Length => 2;
     }
 }

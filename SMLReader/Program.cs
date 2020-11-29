@@ -96,6 +96,11 @@ namespace SMLReader
 
             client.AddPoint("effp", "watts", (int)effectivePowerEntry.IntValue.Value);
             Console.WriteLine("Current Effective Power: " + (int)effectivePowerEntry.IntValue.Value + " W");
+
+            using (FileStream f = new FileStream("SML-Message-" + DateTime.Now.ToString("yyyyMMdd-HHmmss.fff") + ".bin", FileMode.CreateNew))
+            {
+                f.Write(e.BinaryRawMessage, 0, e.BinaryRawMessage.Length);
+            }
         }
 
         private static void P_DataReceived(object sender, SerialDataReceivedEventArgs e)

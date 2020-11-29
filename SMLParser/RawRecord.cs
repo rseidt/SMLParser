@@ -6,7 +6,7 @@ namespace SMLParser
 {
     public abstract class RawRecord
     {
-        public int Length { get; set; }
+        public abstract int Length { get; }
         public RawType Type { get; set; }
     }
 }

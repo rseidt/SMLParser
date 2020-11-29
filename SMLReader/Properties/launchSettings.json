@@ -2,7 +2,7 @@
   "profiles": {
     "SMLReader": {
       "commandName": "Project",
-      "commandLineArgs": "/dev/ttyUSB0 http://influxdb.fritz.box:8086/ xxxx-xxxxx== myBucket myOrg"
+      "commandLineArgs": "COM5 http://influxdb.fritz.box:8086/ xxx myBucket myOrg"
     }
   }
 }

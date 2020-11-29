@@ -58,7 +58,7 @@ namespace SMLParser
                 messageCount++;
                 beginindicatorLocations = currentChunk.Locate(SMLParser.beginIndicator);
                 endindicatorLocations = currentChunk.Locate(SMLParser.endIndicator);
-                OnDocumentAvailable(new SMLDocumentEventArgs { Document = result });
+                OnDocumentAvailable(new SMLDocumentEventArgs { Document = result, BinaryRawMessage = p.BinaryRawData });
             }
 
         }

@@ -7,14 +7,16 @@ namespace SMLParser
     public class RawSequence : RawRecord
     {
         private List<RawRecord> items = null;
+        public uint? StartIndexInStream;
         internal RawSequence()
         {
 
         }
+
+        public override int Length { get { return Items.Count; } }
         internal RawSequence(List<RawRecord> Items)
         {
             items = Items;
-            Length = Items.Count;
             Type = RawType.List;
         }
         public List<RawRecord> Items { 

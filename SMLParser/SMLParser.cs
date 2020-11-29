@@ -8,9 +8,11 @@ namespace SMLParser
     {
         internal static readonly byte[] beginIndicator = { 0x1b, 0x1b, 0x1b, 0x1b, 0x01, 0x01, 0x01, 0x01 };
         internal static readonly byte[] endIndicator = { 0x1b, 0x1b, 0x1b, 0x1b, 0x1a };
-        private static byte GetFromNibbles(byte Highnibble, byte Lownibble)
-        {
-            return (byte)((Highnibble << 4) | Lownibble);
+
+        private byte[] _binData = null;
+        public byte[] BinaryRawData {
+            get { if (_binData == null) throw new ApplicationException("Call 'ParseBinary' first, before accessing the BinaryRawData Property"); else return _binData; }
+            private set { this._binData = value; }
         }
         private byte[] Message;
         int index = 0;
@@ -75,15 +77,15 @@ namespace SMLParser
                 throw new Exception("CRC check failed, message is corrupt.");
             }
 
+            ReadOnlySpan<byte> strippedMessage = new ReadOnlySpan<byte>(Message, messageStartIndex, messageEndIndex - messageStartIndex + 1);
+            this.BinaryRawData = strippedMessage.ToArray();
 
             RawSequence result = new RawSequence();
-            result.Length = 0;
             index = dataStartIndex;
             while (Message[index].GetHighNibble() == 0x07)
             {
                 var length = Message[index].GetLowNibble();
                 result.Items.Add(new RawSequence (ParseList()));
-                result.Length++;
             }
             result.Type = RawType.List;
             return result;
@@ -106,7 +108,7 @@ namespace SMLParser
                 index++;
                 
             } while (type > 7);
-            if (!isList)
+            if (!isList && length >= lengthBytes)
                 length -= lengthBytes;
             return length;
         }
@@ -120,9 +122,8 @@ namespace SMLParser
             List<RawRecord> result = new List<RawRecord>();
             for (int i = 0; i < listLength; i++)
             {
-                if (Message[index].GetHighNibble() == 0x07) //SubList
+                if (Message[index].GetHighNibble() == (byte)RawType.List || Message[index].GetHighNibble() == (byte)RawType.LongList) //SubList
                 {
-                    var length = Message[index].GetLowNibble();
                     result.Add(new RawSequence(ParseList()));
                 } else
                 {
@@ -137,23 +138,21 @@ namespace SMLParser
             SMLValue val = new SMLValue();
             
             val.Type = (RawType)Message[index].GetHighNibble();
-            val.Length = (int)ReadLength();
-            if (val.Length > -1)
+            var length = ReadLength();
+            byte[] value = new byte[length];
+
+            for (int i = 0; i < length; i++)
             {
-                byte[] value = new byte[val.Length];
-
-                for (int i = 0; i < val.Length; i++)
-                {
-                    value[i] = Message[index];
-                    index++;
-                }
-                if (BitConverter.IsLittleEndian && (val.Type == RawType.Integer || val.Type == RawType.LongInteger || val.Type == RawType.LongUnsigned || val.Type == RawType.Unsigned || val.Type == RawType.Unsigned))
-                {
-                    Array.Reverse(value);
-                }
-
-                val.Value = value;
+                value[i] = Message[index];
+                index++;
             }
+            if (BitConverter.IsLittleEndian && (val.Type == RawType.Integer || val.Type == RawType.LongInteger || val.Type == RawType.LongUnsigned || val.Type == RawType.Unsigned || val.Type == RawType.Unsigned))
+            {
+                Array.Reverse(value);
+            }
+
+            val.Value = value;
+
             return val;
         }
     }

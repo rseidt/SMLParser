@@ -6,11 +6,11 @@ namespace SMLParser
 {
     public class SMLListEntry
     {
-        public string ObjName { get; set; }
+        public byte[] ObjName { get; set; }
         public ulong? status { get; set; }
         public DateTime? ValTime { get; set; }
         public SMLUnit? Unit { get; set; }
-        public short? Scaler { get; set; }
+        public sbyte? Scaler { get; set; }
         public SMLValue Value { get; set; }
         public long? IntValue { get; set; }
         public ulong? UIntValue { get; set; }

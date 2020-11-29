@@ -8,7 +8,7 @@ namespace SMLParser
     {
         OpenRequest = 0x0100,
         OpenResponse = 0x0101,
-        CloseRequest = 0x0201,
+        CloseRequest = 0x0200,
         CloseResponse = 0x0201,
         GetProfilePackRequest = 0x0300,
         GetProfilePackResponse = 0x0301,
@@ -16,7 +16,7 @@ namespace SMLParser
         GetProfileListResponse = 0x0401,
         GetProcParameterRequest = 0x0500,
         GetProcParameterResponse = 0x0501,
-        SetProcParameterRequest = 0x0500,
+        SetProcParameterRequest = 0x0600,
         GetListRequest = 0x0700,
         GetListResponse = 0x0701,
         GetCosemRequest = 0x0800,
