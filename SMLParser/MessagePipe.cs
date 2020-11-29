@@ -29,6 +29,14 @@ namespace SMLParser
             handler?.Invoke(this, e);
         }
 
+        public void Reset()
+        {
+            messageCount = 0;
+            SourceStream.Position = 0;
+            SourceStream.SetLength(0);
+            
+        }
+
         private void CheckMessage()
         {
             if (SourceStream.Length < 16)
@@ -62,34 +70,34 @@ namespace SMLParser
             }
 
         }
-            public static void PrintValue(RawRecord v, int indent)
+        public static void PrintValue(RawRecord v, int indent)
+        {
+            if (v.Type == RawType.List)
             {
-                if (v.Type == RawType.List)
+                Console.Write("-".PadLeft(indent * 2 + 1));
+                Console.Write("Liste mit " + v.Length + " Einträgen:\r\n");
+                foreach (RawRecord subval in ((RawSequence)v).Items)
                 {
-                    Console.Write("-".PadLeft(indent * 2 + 1));
-                    Console.Write("Liste mit " + v.Length + " Einträgen:\r\n");
-                    foreach (RawRecord subval in ((RawSequence)v).Items)
-                    {
-                        PrintValue(subval, indent + 1);
-                    }
+                    PrintValue(subval, indent + 1);
+                }
+            }
+            else
+            {
+                Console.Write("-".PadLeft(indent * 2 + 1));
+                Console.Write("Len: " + v.Length + "; Type: " + v.Type + ", Value: ");
+                if (((SMLValue)v).Value == null)
+                {
+                    Console.Write("<NULL>");
                 }
                 else
                 {
-                    Console.Write("-".PadLeft(indent * 2 + 1));
-                    Console.Write("Len: " + v.Length + "; Type: " + v.Type + ", Value: ");
-                    if (((SMLValue)v).Value == null)
+                    foreach (byte b in ((SMLValue)v).Value)
                     {
-                        Console.Write("<NULL>");
+                        Console.Write(b.ToString("x").PadLeft(2, '0') + " ");
                     }
-                    else
-                    {
-                        foreach (byte b in ((SMLValue)v).Value)
-                        {
-                            Console.Write(b.ToString("x").PadLeft(2, '0') + " ");
-                        }
-                    }
-                    Console.Write("\r\n");
                 }
+                Console.Write("\r\n");
             }
         }
     }
+}

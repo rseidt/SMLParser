@@ -26,7 +26,7 @@ namespace SMLTests
             List<SMLMessage> document = p.Parse();
             SMLBuilder b = new SMLBuilder(document);
             byte[] probe = b.Convert();
-
+            Assert.AreEqual(probe.Length, SML.Length);
             for (int i = 0; i < probe.Length; i++)
             {
                 Assert.AreEqual(probe[i], SML[i]);

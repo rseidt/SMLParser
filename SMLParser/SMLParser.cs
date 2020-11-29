@@ -11,7 +11,7 @@ namespace SMLParser
 
         private byte[] _binData = null;
         public byte[] BinaryRawData {
-            get { if (_binData == null) throw new ApplicationException("Call 'ParseBinary' first, before accessing the BinaryRawData Property"); else return _binData; }
+            get { if (_binData == null) throw new SMLException("Call 'ParseBinary' first, before accessing the BinaryRawData Property"); else return _binData; }
             private set { this._binData = value; }
         }
         private byte[] Message;
@@ -30,7 +30,7 @@ namespace SMLParser
 
             if (record.Type != RawType.List && record.Length < 3)
             {
-                throw new Exception("expecting a sequence with at least 3 elements");
+                throw new SMLException("expecting a sequence with at least 3 elements");
             }
             List<SMLMessage> document = new List<SMLMessage>();
             SMLInterpreter i = new SMLInterpreter();
@@ -47,10 +47,10 @@ namespace SMLParser
 
             int[] beginIndicators = Message.Locate(beginIndicator);
             if (beginIndicators.Length < 1)
-                throw new Exception("Could not find begin sequence");
+                throw new SMLException("Could not find begin sequence");
             int[] endIndicators = Message.Locate(endIndicator);
             if (endIndicators.Length < 1)
-                throw new Exception("Could not find end sequence");
+                throw new SMLException("Could not find end sequence");
             int messageEndIndex = endIndicators[0];
             int messageStartIndex = beginIndicators[0];
             foreach (int endIndex in endIndicators)
@@ -63,7 +63,7 @@ namespace SMLParser
             }
             if (!(messageEndIndex > messageStartIndex && Message.Length >= messageEndIndex + 8))
             {
-                throw new Exception("Unable to find a complete Message");
+                throw new SMLException("Unable to find a complete Message");
             }
             messageEndIndex += 7;
             int dataStartIndex = beginIndicators[0] + beginIndicator.Length;
@@ -74,7 +74,7 @@ namespace SMLParser
             ushort calculatedSum = crc.ComputeChecksum(messageWithoutChecksum.ToArray());
             if (checksum != calculatedSum)
             {
-                throw new Exception("CRC check failed, message is corrupt.");
+                throw new SMLException("CRC check failed, message is corrupt.");
             }
 
             ReadOnlySpan<byte> strippedMessage = new ReadOnlySpan<byte>(Message, messageStartIndex, messageEndIndex - messageStartIndex + 1);
@@ -117,7 +117,7 @@ namespace SMLParser
         {
             var type = Message[index].GetHighNibble();
             if (type != (byte)RawType.List && type != (byte)RawType.LongList)
-                throw new Exception("Current byte ("+ Message[index].ToString("x2") +") does not point to a List indicator (0x7X | 0xFX)");
+                throw new SMLException("Current byte ("+ Message[index].ToString("x2") +") does not point to a List indicator (0x7X | 0xFX)");
             var listLength = ReadLength();
             List<RawRecord> result = new List<RawRecord>();
             for (int i = 0; i < listLength; i++)

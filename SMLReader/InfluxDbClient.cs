@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace SMLReader
 {
-    class SMLPowerInfluxDBClient
+    class SMLPowerInfluxDBClient : IDisposable
     {
         private readonly string token;
         private readonly string bucket;
         private readonly string org;
-        public readonly HttpClient client;
+        private readonly HttpClient client;
         private readonly StringBuilder pointSet;
         public bool QueueClear = true;
         public SMLPowerInfluxDBClient(string InfluxDbUrl, string Token, string Bucket, string Org)
@@ -33,13 +33,18 @@ namespace SMLReader
 
         }
 
-        public void AddPoint(string Measurement, string FieldName, int KW){
+        public void AddPoint(string Measurement, int effective, int load, int production){
             long timestamp = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
-            var point = $"{Measurement} {FieldName}={KW}i {timestamp}";
+            var point = $"{Measurement} effective={effective}i,load={load}i,production={production}i {timestamp}";
             if (pointSet.Length > 0)
                 pointSet.Append("\n");
             pointSet.Append(point);
             QueueClear = false;
+        }
+
+        public void Dispose()
+        {
+            client.Dispose();
         }
 
         public async Task<PersistenceResult> Persist()

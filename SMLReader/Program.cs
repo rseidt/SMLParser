@@ -16,14 +16,9 @@ namespace SMLReader
 
         static MessagePipe messagePipe = new MessagePipe();
 
-        public static SMLPowerInfluxDBClient client; 
-
-        //static void Main(string[] args)
-        //{
-        //    client.AddPoint("effp", "watts", DateTime.Now.Millisecond);
-        //    var result = client.Persist().Result;
-        //    Console.WriteLine("Result:" + result.ErrorMessage);
-        //}
+        static SMLPowerInfluxDBClient influxClient;
+        static PvClient pvClient;
+        static SerialPort port;
 
 
         private static string serialPort;
@@ -31,14 +26,22 @@ namespace SMLReader
         private static string token;
         private static string bucket;
         private static string org;
+        private static string pvUrl;
 
+
+        private const int BaudRate = 9600;
+        private const Parity PortParity = Parity.None;
+        private const int DataBits = 8;
+
+        private static int? effectivePower;
+        private static int? pvProduction;
 
         static void Main(string[] args)
         {
-            if (args.Length != 5)
+            if (args.Length != 6)
             {
-                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPort] [influxDBUrl] [InfluxAuthToken] [influxBucket] [influxOrganization]");
-                Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0 http://influxdb.fritz.box:8086/ xxxx-xxxxx== myBucket myOrg");
+                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPort] [influxDBUrl] [InfluxAuthToken] [influxBucket] [influxOrganization] [PvUrl]");
+                Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0 http://influxdb.fritz.box:8086/ xxxx-xxxxx== myBucket myOrg http://pv.fritz.box");
                 return;
             }
 
@@ -47,68 +50,146 @@ namespace SMLReader
             token = args[2];
             bucket = args[3];
             org = args[4];
+            pvUrl = args[5];
 
 
-            client = new SMLPowerInfluxDBClient(
+            influxClient = new SMLPowerInfluxDBClient(
              influxDb,
              token,
              bucket,
              org
             );
 
-            int baudRate = 9600;
-
-            SerialPort p = new SerialPort(serialPort, baudRate, Parity.None, 8);
-
-            Timer persistTimer = new Timer((state) => {
-                if (!client.QueueClear)
-                {
-                    var result = client.Persist().Result;
-                    if (!result.IsSuccessMessage)
-                    {
-                        Console.WriteLine("ERROR: " + result.ErrorMessage);
-                    } else
-                    {
-                        Console.WriteLine("Persisted documents");
-                    }
-                }
-            }, null, 5000, 5000);
+            pvClient = new PvClient(
+             pvUrl
+            );
 
             messagePipe.DocumentAvailable += MessagePipe_DocumentAvailable;
-            p.Open();
-            p.DataReceived += P_DataReceived;
+            try
+            {
+                port = new SerialPort(serialPort, BaudRate, PortParity, DataBits);
+            } catch (IOException ex)
+            {
+                HandleError(ex, "While instancing the specified port the following Error occured: {0}");
+                influxClient.Dispose();
+                pvClient.Dispose();
+                return;
+            }
+            port.DataReceived += P_DataReceived;
+
+            Timer persistTimer = new Timer((state) => {
+                try
+                {
+                    if (!port.IsOpen)
+                    {
+                        port.Open();
+                    }
+                } catch (Exception ex)
+                {
+                    HandleError(ex, "Error occured while trying to open serial port: {0}");
+                    Environment.Exit(1);
+                }
+                try
+                {
+                    pvProduction = pvClient.GetCurrentProduction().Result;
+
+                } catch (Exception ex)
+                {
+                    pvProduction = null;
+                    HandleError(ex, "Could not query pv production. Skipping this point: {0}");
+                }
+                Persist();
+
+            }, null, 0, 10000);
+
+
 
             Console.CancelKeyPress += (sender, eArgs) =>
             {
-                var result = client.Persist().Result;
+                var result = influxClient.Persist().Result;
 
                 quitEvent.Set();
                 eArgs.Cancel = true;
-                p.Close();
+                port.Close();
+                influxClient.Dispose();
+                pvClient.Dispose();
             };
             quitEvent.WaitOne();
 
         }
 
+        private static void HandleError(Exception Ex, string ExtraInfo)
+        {
+            Console.WriteLine(String.Format(ExtraInfo, Ex.Message));
+        }
+
+        private static void Persist()
+        {
+            if (!effectivePower.HasValue || !pvProduction.HasValue)
+                return;
+            var prod = pvProduction.Value;
+            var pow = effectivePower.Value;
+            influxClient.AddPoint("instantanious", pow, pow + prod, prod);
+            pvProduction = null;
+            effectivePower = null;
+
+
+            if (!influxClient.QueueClear)
+            {
+                var result = influxClient.Persist().Result;
+                if (!result.IsSuccessMessage)
+                {
+                    try
+                    {
+                        throw new SMLException("Error during persisence to influx. HTTP Status " + result.ReturnCode);
+                    } catch(SMLException)
+                    {
+                        HandleError(new SMLException(result.ErrorMessage), "Error during persisence to influx. HTTP Status " + result.ReturnCode + ": {0}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Persisted instantanious: {pow} effective, {pow+prod} load, {prod} production");
+                }
+            }
+        }
+
         private static void MessagePipe_DocumentAvailable(object sender, SMLDocumentEventArgs e)
         {
-            var effectivePowerEntry = ((SMLGetListResponse)e.Document[1].Body).ValList.Where(m => m.ObisCode != null && m.ObisCode.Register == "1-0:16.7.0*255").FirstOrDefault();
-
-            client.AddPoint("effp", "watts", (int)effectivePowerEntry.IntValue.Value);
-            Console.WriteLine("Current Effective Power: " + (int)effectivePowerEntry.IntValue.Value + " W");
-
-            using (FileStream f = new FileStream("SML-Message-" + DateTime.Now.ToString("yyyyMMdd-HHmmss.fff") + ".bin", FileMode.CreateNew))
+            try
             {
-                f.Write(e.BinaryRawMessage, 0, e.BinaryRawMessage.Length);
+                var effectivePowerEntry = ((SMLGetListResponse)e.Document[1].Body).ValList.Where(m => m.ObisCode != null && m.ObisCode.Register == "1-0:16.7.0*255").FirstOrDefault();
+                effectivePower = (int)effectivePowerEntry.IntValue.Value;
+            } catch(Exception ex)
+            {
+                effectivePower = null;
+                HandleError(ex, "Could not read effetive Power from SML Message. Skipping this point: {0}");
             }
+            try
+            {
+                port.Close();
+            } catch (IOException ex)
+            {
+                HandleError(ex, "Unable to close serial port Port. Anyway continuing. {0}");
+            }
+            messagePipe.Reset();
+            Persist();
         }
 
         private static void P_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             var p = (SerialPort)sender;
             byte[] chunk = new byte[p.BytesToRead];
-            p.Read(chunk, 0, chunk.Length);
-            messagePipe.AddChunk(chunk);
+            try
+            {
+                p.Read(chunk, 0, chunk.Length);
+                messagePipe.AddChunk(chunk);
+            }
+            catch (Exception Ex)
+            {
+                HandleError(Ex, "Error during reading bytes from Serial port. Resetting Pipe. {0}");
+                messagePipe.Reset();
+            }
         }
     }
 }

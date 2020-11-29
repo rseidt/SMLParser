@@ -88,7 +88,7 @@ namespace SMLParser
                 case SMLMessageType.SetProcParameterRequest:
                     return SetProcParameterRequestToSequence();
                 default:
-                    throw new ApplicationException("Unsupported Message Type: " + (ushort)body.Type);
+                    throw new SMLException("Unsupported Message Type: " + (ushort)body.Type);
 
             }
         }
@@ -139,7 +139,7 @@ namespace SMLParser
                         result.Items.Add(timeSequence);
                         break;
                     default:
-                        throw new NotSupportedException("DateTime Type " + DateTimeType + " is not supported.");
+                        throw new SMLException("DateTime Type " + DateTimeType + " is not supported.");
                 }
                 return result;
 
