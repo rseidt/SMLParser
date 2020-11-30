@@ -35,7 +35,7 @@ namespace SMLReader
 
         public void AddPoint(string Measurement, int effective, int buy, int load, int production){
             long timestamp = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
-            var point = $"{Measurement} effective={effective}i,buy={buy}i, load={load}i,production={production}i {timestamp}";
+            var point = $"{Measurement} effective={effective}i,buy={buy}i,load={load}i,production={production}i {timestamp}";
             if (pointSet.Length > 0)
                 pointSet.Append("\n");
             pointSet.Append(point);
