@@ -156,7 +156,7 @@ namespace SMLReader
                 }
                 else
                 {
-                    Console.WriteLine($"Persisted instantanious: {pow} effective, {pow+prod} load, {prod} production");
+                    //Console.WriteLine($"Persisted instantanious: {pow} effective, {pow+prod} load, {prod} production");
                 }
             }
         }
