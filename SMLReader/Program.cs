@@ -136,7 +136,7 @@ namespace SMLReader
                 return;
             var prod = pvProduction.Value;
             var pow = effectivePower.Value;
-            influxClient.AddPoint("instantanious", pow, pow + prod, prod);
+            influxClient.AddPoint("instantanious", pow, pow > 0 ? pow : 0, pow + prod, prod);
             pvProduction = null;
             effectivePower = null;
 
