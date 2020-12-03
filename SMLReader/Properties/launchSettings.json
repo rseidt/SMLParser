@@ -2,7 +2,7 @@
   "profiles": {
     "SMLReader": {
       "commandName": "Project",
-      "commandLineArgs": "COM5 http://influxdb.fritz.box:8086/ q0-VcWXRu-iOMffaJH-k-zeh4FEVq4dMH8oUSm_T7XUPYg2kShpf3F0O6Uycn6G70ePRxpoSQOtc47gvfb4EEQ== effective_power edge http://pv.fritz.box/"
+      "commandLineArgs": "COM5 http://influxdb.fritz.box:8086/ 3nRdjfTWJT3P9nxFT9vXeappFpMPuEG8piWmGocS0JvJrrrfzs4stOSeMhwb7qZuJLppNb53xR_sPVVJgTLU5w== effective_power cumulative_power edge http://pv.fritz.box/"
     }
   }
 }

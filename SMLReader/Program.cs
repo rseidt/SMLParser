@@ -24,7 +24,8 @@ namespace SMLReader
         private static string serialPort;
         private static string influxDb;
         private static string token;
-        private static string bucket;
+        private static string effectiveBucket;
+        private static string cumulativeBucket;
         private static string org;
         private static string pvUrl;
 
@@ -36,12 +37,15 @@ namespace SMLReader
         private static int? effectivePower;
         private static int? pvProduction;
 
+        private static int? obis180;
+        private static int? obis280;
+
         static void Main(string[] args)
         {
-            if (args.Length != 6)
+            if (args.Length != 7)
             {
-                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPort] [influxDBUrl] [InfluxAuthToken] [influxBucket] [influxOrganization] [PvUrl]");
-                Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0 http://influxdb.fritz.box:8086/ xxxx-xxxxx== myBucket myOrg http://pv.fritz.box");
+                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPort] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl]");
+                Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0 http://influxdb.fritz.box:8086/ xxxx-xxxxx== myEffectiveBucket myCumulativeBucket myOrg http://pv.fritz.box");
 
                 //Console.WriteLine("Expecting 6 Parameters, but found " + args.Length);
                 //foreach (string arg in args)
@@ -55,15 +59,17 @@ namespace SMLReader
             serialPort = args[0];
             influxDb = args[1];
             token = args[2];
-            bucket = args[3];
-            org = args[4];
-            pvUrl = args[5];
+            effectiveBucket = args[3];
+            cumulativeBucket = args[4];
+            org = args[5];
+            pvUrl = args[6];
 
 
             influxClient = new SMLPowerInfluxDBClient(
              influxDb,
              token,
-             bucket,
+             effectiveBucket,
+             cumulativeBucket,
              org
             );
 
@@ -75,7 +81,8 @@ namespace SMLReader
             try
             {
                 port = new SerialPort(serialPort, BaudRate, PortParity, DataBits);
-            } catch (IOException ex)
+            }
+            catch (IOException ex)
             {
                 HandleError(ex, "While instancing the specified port the following Error occured: {0}");
                 influxClient.Dispose();
@@ -84,14 +91,16 @@ namespace SMLReader
             }
             port.DataReceived += P_DataReceived;
 
-            Timer persistTimer = new Timer((state) => {
+            Timer persistTimer = new Timer((state) =>
+            {
                 try
                 {
                     if (!port.IsOpen)
                     {
                         port.Open();
                     }
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
                     HandleError(ex, "Error occured while trying to open serial port: {0}");
                     Environment.Exit(1);
@@ -100,12 +109,15 @@ namespace SMLReader
                 {
                     pvProduction = pvClient.GetCurrentProduction().Result;
 
-                } catch (Exception ex)
+                }
+                catch (Exception ex)
                 {
                     pvProduction = null;
                     HandleError(ex, "Could not query pv production. Skipping this point: {0}");
                 }
                 Persist();
+                CheckYield();
+
 
             }, null, 0, 10000);
 
@@ -113,7 +125,7 @@ namespace SMLReader
 
             Console.CancelKeyPress += (sender, eArgs) =>
             {
-                var result = influxClient.Persist().Result;
+                var result = influxClient.PersistEffective().Result;
 
                 quitEvent.Set();
                 eArgs.Cancel = true;
@@ -124,6 +136,61 @@ namespace SMLReader
             quitEvent.WaitOne();
 
         }
+
+        private static void CheckYield()
+        {
+            string currentDate = DateTime.Now.ToString("yyyyMMdd");
+            string date;
+            using (FileStream dateCheck = new FileStream("datecheck", FileMode.OpenOrCreate, FileAccess.Read))
+            {
+                byte[] buffer = new byte[dateCheck.Length];
+                dateCheck.Read(buffer, 0, buffer.Length);
+                date = System.Text.Encoding.UTF8.GetString(buffer);
+            }
+            if (currentDate == date)
+            {
+                return;
+            }
+            else
+            {
+                try
+                {
+
+                    if (PersistCumulative())
+                    {
+                        using (FileStream dateCheck = new FileStream("datecheck", FileMode.OpenOrCreate, FileAccess.Write))
+                        {
+                            dateCheck.Seek(0, SeekOrigin.End);
+                            dateCheck.SetLength(0);
+                            dateCheck.Write(System.Text.Encoding.UTF8.GetBytes(currentDate));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    HandleError(ex, "Could not Persist cumulative values: {0}");
+                }
+            }
+        }
+
+        private static bool PersistCumulative()
+        {
+            if (!obis180.HasValue || !obis280.HasValue)
+            {
+                return false;
+            }
+            var yield = pvClient.GetTotalYield().Result;
+            var result = influxClient.PersistCumulative(obis280.Value, obis180.Value, yield).Result;
+            if (!result.IsSuccessMessage)
+            {
+                throw new SMLException("Influx write Error " + result.ReturnCode + ":" + result.ErrorMessage);
+            }
+            else
+            {
+                return true;
+            }
+        }
+
 
         private static void HandleError(Exception Ex, string ExtraInfo)
         {
@@ -136,20 +203,21 @@ namespace SMLReader
                 return;
             var prod = pvProduction.Value;
             var pow = effectivePower.Value;
-            influxClient.AddPoint("instantanious", pow, pow > 0 ? pow : 0, pow + prod, prod);
+            influxClient.AddEffectivePoint("instantanious", pow, pow > 0 ? pow : 0, pow + prod, prod);
             pvProduction = null;
             effectivePower = null;
 
 
             if (!influxClient.QueueClear)
             {
-                var result = influxClient.Persist().Result;
+                var result = influxClient.PersistEffective().Result;
                 if (!result.IsSuccessMessage)
                 {
                     try
                     {
                         throw new SMLException("Error during persisence to influx. HTTP Status " + result.ReturnCode);
-                    } catch(SMLException)
+                    }
+                    catch (SMLException)
                     {
                         HandleError(new SMLException(result.ErrorMessage), "Error during persisence to influx. HTTP Status " + result.ReturnCode + ": {0}");
                     }
@@ -167,7 +235,15 @@ namespace SMLReader
             {
                 var effectivePowerEntry = ((SMLGetListResponse)e.Document[1].Body).ValList.Where(m => m.ObisCode != null && m.ObisCode.Register == "1-0:16.7.0*255").FirstOrDefault();
                 effectivePower = (int)effectivePowerEntry.IntValue.Value;
-            } catch(Exception ex)
+
+                var obis180Entry = ((SMLGetListResponse)e.Document[1].Body).ValList.Where(m => m.ObisCode != null && m.ObisCode.Register == "1-0:1.8.0*255").FirstOrDefault();
+                obis180 = (int)obis180Entry.UIntValue.Value / 10;
+
+                var obis280Entry = ((SMLGetListResponse)e.Document[1].Body).ValList.Where(m => m.ObisCode != null && m.ObisCode.Register == "1-0:2.8.0*255").FirstOrDefault();
+                obis280 = (int)obis280Entry.UIntValue.Value / 10;
+
+            }
+            catch (Exception ex)
             {
                 effectivePower = null;
                 HandleError(ex, "Could not read effetive Power from SML Message. Skipping this point: {0}");
@@ -175,7 +251,8 @@ namespace SMLReader
             try
             {
                 port.Close();
-            } catch (IOException ex)
+            }
+            catch (IOException ex)
             {
                 HandleError(ex, "Unable to close serial port Port. Anyway continuing. {0}");
             }
