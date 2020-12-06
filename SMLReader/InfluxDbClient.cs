@@ -69,12 +69,10 @@ namespace SMLReader
 
         public async Task<PersistenceResult> PersistCumulative(int Obis280, int Obis180, int yield)
         {
-            var dateToday = DateTime.UtcNow.Date.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
-            var dateYesterdaty= DateTime.UtcNow.Date.AddMinutes(-1).Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
 
             long timestamptoday = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
-            long timestampyesterday = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
-            var pointString = $"cumulative obis180={Obis180}i,obis280={Obis280}i,yield={yield}i {timestampyesterday}\ncumulative obis180={Obis180}i,obis280={Obis280}i,yield={yield}i {timestamptoday}";
+            var pointString = $"cumulative obis180={Obis180}i,obis280={Obis280}i,yield={yield}i {timestamptoday}";
+
             var response = await client.PostAsync($"write?bucket={cumulativeBucket}&org={org}&precision=s", new StringContent(
                     pointString
                 ));

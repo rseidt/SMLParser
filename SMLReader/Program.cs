@@ -47,12 +47,6 @@ namespace SMLReader
                 Console.WriteLine("Usage: dotnet SMLReader.dll [serialPort] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl]");
                 Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0 http://influxdb.fritz.box:8086/ xxxx-xxxxx== myEffectiveBucket myCumulativeBucket myOrg http://pv.fritz.box");
 
-                //Console.WriteLine("Expecting 6 Parameters, but found " + args.Length);
-                //foreach (string arg in args)
-                //{
-                //    Console.WriteLine("- " + arg);
-                //}
-
                 return;
             }
 
@@ -116,12 +110,18 @@ namespace SMLReader
                     HandleError(ex, "Could not query pv production. Skipping this point: {0}");
                 }
                 Persist();
-                CheckYield();
-
-
             }, null, 0, 10000);
 
-
+            Timer persistCumulative = new Timer((state) =>
+            {
+                try
+                {
+                    PersistCumulative();
+                } catch (Exception ex)
+                {
+                    HandleError(ex, "Could not persist cumulative values: {0}");
+                }
+            }, null, 5000, 600000);
 
             Console.CancelKeyPress += (sender, eArgs) =>
             {
@@ -135,42 +135,6 @@ namespace SMLReader
             };
             quitEvent.WaitOne();
 
-        }
-
-        private static void CheckYield()
-        {
-            string currentDate = DateTime.Now.ToString("yyyyMMdd");
-            string date;
-            using (FileStream dateCheck = new FileStream("datecheck", FileMode.OpenOrCreate, FileAccess.Read))
-            {
-                byte[] buffer = new byte[dateCheck.Length];
-                dateCheck.Read(buffer, 0, buffer.Length);
-                date = System.Text.Encoding.UTF8.GetString(buffer);
-            }
-            if (currentDate == date)
-            {
-                return;
-            }
-            else
-            {
-                try
-                {
-
-                    if (PersistCumulative())
-                    {
-                        using (FileStream dateCheck = new FileStream("datecheck", FileMode.OpenOrCreate, FileAccess.Write))
-                        {
-                            dateCheck.Seek(0, SeekOrigin.End);
-                            dateCheck.SetLength(0);
-                            dateCheck.Write(System.Text.Encoding.UTF8.GetBytes(currentDate));
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    HandleError(ex, "Could not Persist cumulative values: {0}");
-                }
-            }
         }
 
         private static bool PersistCumulative()
