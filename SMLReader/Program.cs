@@ -161,7 +161,7 @@ namespace SMLReader
                 return false;
             }
             var yield = pvClient.GetTotalYield().Result;
-            var charge = chargerClient.GetTotalchargingConsumption().Result;
+            var charge = chargerClient.GetTotalchargingConsumption().Result * 1000;
             var result = influxClient.PersistCumulative(obis280.Value, obis180.Value, yield, (int)charge).Result;
             if (!result.IsSuccessMessage)
             {
