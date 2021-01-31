@@ -181,7 +181,7 @@ namespace SMLReader
 
         private static void Persist()
         {
-            if (!effectivePower.HasValue || !pvProduction.HasValue)
+            if (!effectivePower.HasValue || !pvProduction.HasValue || !chargingPower.HasValue)
                 return;
             var prod = pvProduction.Value;
             var pow = effectivePower.Value;
