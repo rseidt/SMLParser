@@ -35,10 +35,10 @@ namespace SMLReader
 
         }
 
-        public void AddEffectivePoint(string Measurement, int effective, int buy, int load, int production)
+        public void AddEffectivePoint(string Measurement, int effective, int buy, int load, int production, int charge, int load_wo_charge)
         {
             long timestamp = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
-            var point = $"{Measurement} effective={effective}i,buy={buy}i,load={load}i,production={production}i {timestamp}";
+            var point = $"{Measurement} effective={effective}i,buy={buy}i,load={load}i,production={production}i,charge={charge}i,load_wo_charge={load_wo_charge}i {timestamp}";
             if (pointSet.Length > 0)
                 pointSet.Append("\n");
             pointSet.Append(point);
@@ -67,11 +67,11 @@ namespace SMLReader
         }
 
 
-        public async Task<PersistenceResult> PersistCumulative(int Obis280, int Obis180, int yield)
+        public async Task<PersistenceResult> PersistCumulative(int Obis280, int Obis180, int yield, int charge)
         {
 
             long timestamptoday = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
-            var pointString = $"cumulative obis180={Obis180}i,obis280={Obis280}i,yield={yield}i {timestamptoday}";
+            var pointString = $"cumulative obis180={Obis180}i,obis280={Obis280}i,yield={yield}i,charge={charge}i {timestamptoday}";
 
             var response = await client.PostAsync($"write?bucket={cumulativeBucket}&org={org}&precision=s", new StringContent(
                     pointString

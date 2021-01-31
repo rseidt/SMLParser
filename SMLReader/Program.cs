@@ -18,6 +18,7 @@ namespace SMLReader
 
         static SMLPowerInfluxDBClient influxClient;
         static PvClient pvClient;
+        static ChargerClient chargerClient;
         static SerialPort port;
 
 
@@ -28,7 +29,7 @@ namespace SMLReader
         private static string cumulativeBucket;
         private static string org;
         private static string pvUrl;
-
+        private static string ioBrokerApiUrl;
 
         private const int BaudRate = 9600;
         private const Parity PortParity = Parity.None;
@@ -37,15 +38,17 @@ namespace SMLReader
         private static int? effectivePower;
         private static int? pvProduction;
 
+        private static int? chargingPower;
+
         private static int? obis180;
         private static int? obis280;
 
         static void Main(string[] args)
         {
-            if (args.Length != 7)
+            if (args.Length != 8)
             {
-                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPort] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl]");
-                Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0 http://influxdb.fritz.box:8086/ xxxx-xxxxx== myEffectiveBucket myCumulativeBucket myOrg http://pv.fritz.box");
+                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPort] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl] [IOBrokerSimpleApiUrl]");
+                Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0 http://influxdb.fritz.box:8086/ xxxx-xxxxx== myEffectiveBucket myCumulativeBucket myOrg http://pv.fritz.box http://iobroker:8087/");
 
                 return;
             }
@@ -57,7 +60,7 @@ namespace SMLReader
             cumulativeBucket = args[4];
             org = args[5];
             pvUrl = args[6];
-
+            ioBrokerApiUrl = args[7];
 
             influxClient = new SMLPowerInfluxDBClient(
              influxDb,
@@ -69,6 +72,10 @@ namespace SMLReader
 
             pvClient = new PvClient(
              pvUrl
+            );
+
+            chargerClient = new ChargerClient(
+                ioBrokerApiUrl
             );
 
             messagePipe.DocumentAvailable += MessagePipe_DocumentAvailable;
@@ -109,6 +116,16 @@ namespace SMLReader
                     pvProduction = null;
                     HandleError(ex, "Could not query pv production. Skipping this point: {0}");
                 }
+                try
+                {
+                    chargingPower = chargerClient.GetCurrentChargingPower().Result;
+
+                }
+                catch (Exception ex)
+                {
+                    chargingPower = null;
+                    HandleError(ex, "Could not query charging power. Skipping this point: {0}");
+                }
                 Persist();
             }, null, 0, 10000);
 
@@ -144,7 +161,8 @@ namespace SMLReader
                 return false;
             }
             var yield = pvClient.GetTotalYield().Result;
-            var result = influxClient.PersistCumulative(obis280.Value, obis180.Value, yield).Result;
+            var charge = chargerClient.GetTotalchargingConsumption().Result;
+            var result = influxClient.PersistCumulative(obis280.Value, obis180.Value, yield, (int)charge).Result;
             if (!result.IsSuccessMessage)
             {
                 throw new SMLException("Influx write Error " + result.ReturnCode + ":" + result.ErrorMessage);
@@ -167,7 +185,8 @@ namespace SMLReader
                 return;
             var prod = pvProduction.Value;
             var pow = effectivePower.Value;
-            influxClient.AddEffectivePoint("instantanious", pow, pow > 0 ? pow : 0, pow + prod, prod);
+            var charge = chargingPower.Value;
+            influxClient.AddEffectivePoint("instantanious", pow, pow > 0 ? pow : 0, pow + prod, prod, charge, pow + prod - charge);
             pvProduction = null;
             effectivePower = null;
 
