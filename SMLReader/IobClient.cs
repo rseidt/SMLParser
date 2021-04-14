@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -7,11 +8,12 @@ using System.Threading.Tasks;
 
 namespace SMLReader
 {
-    public class ChargerClient
+    public class IobClient
     {
         private readonly HttpClient client;
+        private readonly NumberFormatInfo decimalInfo = System.Globalization.CultureInfo.GetCultureInfo("en-US").NumberFormat;
 
-        public ChargerClient(string ioBrokerBaseUrl)
+        public IobClient(string ioBrokerBaseUrl)
         {
             client = new HttpClient();
             if (!ioBrokerBaseUrl.EndsWith("/"))
@@ -74,5 +76,40 @@ namespace SMLReader
                 throw new ApplicationException("Total Charging Consumtion is unavailable due to http status " + (int)response.StatusCode + " :" + await response.Content.ReadAsStringAsync());
             }
         }
+
+        public async Task<bool> UpdatePowerData(decimal yield, decimal delivery, decimal load)
+        {
+            string contentPattern = "knx.0.Sensorik.Zentral.Einspeisung={0}&knx.0.Sensorik.Zentral.Ertrag={1}&knx.0.Sensorik.Zentral.Gesamtleistung={2}";
+            var stringContent = new StringContent(string.Format(contentPattern, delivery.ToString(decimalInfo), yield.ToString(decimalInfo), load.ToString(decimalInfo)));
+
+            var response = await client.PostAsync("setBulk", stringContent);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            } else
+            {
+                throw new ApplicationException("Could not update power data due to unexpected http status: " + response.StatusCode);
+            }
+
+
+
+
+
+
+                /*
+                 * http://ip:8087/setBulk?hm-rpc.0.FEQ1234567:1.LEVEL=0.7&Anwesenheit=0&prettyPrint
+      [
+        {
+          "id": "hm-rpc.0.FEQ1234567:1.LEVEL",
+          "val": "0.7"
+        },
+        {
+          "error": "error: datapoint \"Anwesenheit\" not found"
+        }
+      ]
+    You can send this request as POST too.
+                */
+            }
     }
 }

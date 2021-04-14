@@ -3,7 +3,6 @@ using System.IO;
 using System.IO.Ports;
 using System.Threading;
 using System.Linq;
-using Newtonsoft.Json;
 using SMLParser;
 using System.Threading.Tasks;
 
@@ -18,7 +17,7 @@ namespace SMLReader
 
         static SMLPowerInfluxDBClient influxClient;
         static PvClient pvClient;
-        static ChargerClient chargerClient;
+        static IobClient iobClient;
         static SerialPort port;
 
 
@@ -43,7 +42,7 @@ namespace SMLReader
         private static int? obis180;
         private static int? obis280;
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             if (args.Length != 8)
             {
@@ -74,7 +73,7 @@ namespace SMLReader
              pvUrl
             );
 
-            chargerClient = new ChargerClient(
+            iobClient = new IobClient(
                 ioBrokerApiUrl
             );
 
@@ -92,7 +91,7 @@ namespace SMLReader
             }
             port.DataReceived += P_DataReceived;
 
-            Timer persistTimer = new Timer((state) =>
+            Timer persistTimer = new Timer(async (state) =>
             {
                 try
                 {
@@ -118,7 +117,7 @@ namespace SMLReader
                 }
                 try
                 {
-                    chargingPower = chargerClient.GetCurrentChargingPower().Result;
+                    chargingPower = iobClient.GetCurrentChargingPower().Result;
 
                 }
                 catch (Exception ex)
@@ -126,14 +125,14 @@ namespace SMLReader
                     chargingPower = null;
                     HandleError(ex, "Could not query charging power. Skipping this point: {0}");
                 }
-                Persist();
+                await Persist();
             }, null, 0, 10000);
 
-            Timer persistCumulative = new Timer((state) =>
+            Timer persistCumulative = new Timer(async (state) =>
             {
                 try
                 {
-                    PersistCumulative();
+                    await PersistCumulative();
                 } catch (Exception ex)
                 {
                     HandleError(ex, "Could not persist cumulative values: {0}");
@@ -154,15 +153,15 @@ namespace SMLReader
 
         }
 
-        private static bool PersistCumulative()
+        private static async Task<bool> PersistCumulative()
         {
             if (!obis180.HasValue || !obis280.HasValue)
             {
                 return false;
             }
             var yield = pvClient.GetTotalYield().Result;
-            var charge = chargerClient.GetTotalchargingConsumption().Result * 1000;
-            var result = influxClient.PersistCumulative(obis280.Value, obis180.Value, yield, (int)charge).Result;
+            var charge = iobClient.GetTotalchargingConsumption().Result * 1000;
+            var result = await influxClient.PersistCumulative(obis280.Value, obis180.Value, yield, (int)charge);
             if (!result.IsSuccessMessage)
             {
                 throw new SMLException("Influx write Error " + result.ReturnCode + ":" + result.ErrorMessage);
@@ -179,26 +178,40 @@ namespace SMLReader
             Console.WriteLine(String.Format(ExtraInfo, Ex.Message));
         }
 
-        private static void Persist()
+        private static async Task Persist()
         {
             if (!effectivePower.HasValue || !pvProduction.HasValue || !chargingPower.HasValue)
                 return;
             var prod = pvProduction.Value;
             var pow = effectivePower.Value;
             var charge = chargingPower.Value;
-            influxClient.AddEffectivePoint("instantanious", pow, pow > 0 ? pow : 0, pow + prod, prod, charge, pow + prod - charge);
+            var buy = pow > 0 ? pow : 0;
+            var load = pow + prod;
+            var delivery = pow < 0 ? pow*-1 : 0;
+            influxClient.AddEffectivePoint("instantanious", pow, buy, load, prod, charge, load - charge);
+            try
+            {
+                var pdresult = await iobClient.UpdatePowerData(
+                    prod,
+                    delivery,
+                    load);
+            } catch (Exception ex)
+            {
+                HandleError(ex, "Error during persisting to iobroker. Skipping.");
+            }
             pvProduction = null;
             effectivePower = null;
 
+            
 
             if (!influxClient.QueueClear)
             {
-                var result = influxClient.PersistEffective().Result;
+                var result = await influxClient.PersistEffective();
                 if (!result.IsSuccessMessage)
                 {
                     try
                     {
-                        throw new SMLException("Error during persisence to influx. HTTP Status " + result.ReturnCode);
+                        throw new SMLException("Error during persisting to influx. HTTP Status " + result.ReturnCode);
                     }
                     catch (SMLException)
                     {
