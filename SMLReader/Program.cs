@@ -42,7 +42,7 @@ namespace SMLReader
         private static int? obis180;
         private static int? obis280;
 
-        static async Task Main(string[] args)
+        public static void Main(string[] args)
         {
             if (args.Length != 8)
             {
