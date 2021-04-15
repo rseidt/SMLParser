@@ -194,7 +194,8 @@ namespace SMLReader
                 var pdresult = await iobClient.UpdatePowerData(
                     prod,
                     delivery,
-                    load);
+                    load,
+                    buy);
             } catch (Exception ex)
             {
                 HandleError(ex, "Error during persisting to iobroker. Skipping.");

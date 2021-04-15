@@ -77,10 +77,10 @@ namespace SMLReader
             }
         }
 
-        public async Task<bool> UpdatePowerData(decimal yield, decimal delivery, decimal load)
+        public async Task<bool> UpdatePowerData(decimal yield, decimal delivery, decimal load, decimal purchase)
         {
-            string contentPattern = "knx.0.Sensorik.Zentral.Einspeisung={0}&knx.0.Sensorik.Zentral.Ertrag={1}&knx.0.Sensorik.Zentral.Gesamtleistung={2}";
-            var stringContent = new StringContent(string.Format(contentPattern, delivery.ToString(decimalInfo), yield.ToString(decimalInfo), load.ToString(decimalInfo)));
+            string contentPattern = "0_userdata.0.Power.Delivery={0}&0_userdata.0.Power.Yield={1}&0_userdata.0.Power.Load={2}&0_userdata.0.Power.Purchase={3}";
+            var stringContent = new StringContent(string.Format(contentPattern, delivery.ToString(decimalInfo), yield.ToString(decimalInfo), load.ToString(decimalInfo), purchase.ToString(decimalInfo)));
 
             var response = await client.PostAsync("setBulk", stringContent);
 
