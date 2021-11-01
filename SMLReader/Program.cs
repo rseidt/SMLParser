@@ -132,17 +132,20 @@ namespace SMLReader
 
             Timer persistTimer = new Timer(async (state) =>
             {
-                try
+                foreach (var port in ports)
                 {
-                    if (!port.IsOpen)
+                    try
                     {
-                        port.Open();
+                        if (!port.IsOpen)
+                        {
+                            port.Open();
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    HandleError(ex, "Error occured while trying to open serial port: {0}");
-                    Environment.Exit(1);
+                    catch (Exception ex)
+                    {
+                        HandleError(ex, "Error occured while trying to open serial port: {0}");
+                        Environment.Exit(1);
+                    }
                 }
                     try
                     {
@@ -186,7 +189,10 @@ namespace SMLReader
 
                 quitEvent.Set();
                 eArgs.Cancel = true;
-                port.Close();
+                foreach (var port in ports)
+                {
+                    port.Close();
+                }
                 influxClient.Dispose();
                 pvClient.Dispose();
             };
