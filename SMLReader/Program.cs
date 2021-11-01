@@ -240,6 +240,9 @@ namespace SMLReader
         private static async Task Persist()
         {
             if (!pvProduction.HasValue || !chargingPower.HasValue)
+            {
+                return;
+            }
             foreach (var meterId in PortCurrents.Keys)
             {
                 if (!PortCurrents[meterId].effectivePower.HasValue)
