@@ -31,7 +31,8 @@ namespace SMLReader
         static SMLPowerInfluxDBClient influxClient;
         static PvClient pvClient;
         static IobClient iobClient;
-        static SerialPort port;
+
+        private static List<SerialPort> ports = new List<SerialPort>();
 
         internal static int? pvProduction;
         internal static int? chargingPower;
@@ -103,7 +104,7 @@ namespace SMLReader
             iobClient = new IobClient(
                 ioBrokerApiUrl
             );
-            List<SerialPort> ports = new List<SerialPort>();
+            
 
             for (int i = 0; i < portsList.Length; i++)
             {
@@ -112,13 +113,14 @@ namespace SMLReader
                 try
                 {
 
-                    port = new SerialPort(sPort, BaudRate, PortParity, DataBits);
+                    var port = new SerialPort(sPort, BaudRate, PortParity, DataBits);
                     ports.Add(port);
                     MessagePipe mp = new MessagePipe(sMeterId);
                     mp.DocumentAvailable += MessagePipe_DocumentAvailable;
                     MessagePipes.Add(port.PortName, mp);
                     Currents c = new Currents();
                     PortCurrents.Add(sMeterId, c);
+                    port.DataReceived += P_DataReceived;
                 }
                 catch (IOException ex)
                 {
@@ -127,7 +129,7 @@ namespace SMLReader
                     pvClient.Dispose();
                     return;
                 }
-                port.DataReceived += P_DataReceived;
+                
             }
 
             Timer persistTimer = new Timer(async (state) =>
@@ -247,12 +249,16 @@ namespace SMLReader
         {
             if (!pvProduction.HasValue || !chargingPower.HasValue)
             {
+                Console.WriteLine("nothing effective to persist in pvProduction or charging Power");
                 return;
             }
             foreach (var meterId in PortCurrents.Keys)
             {
                 if (!PortCurrents[meterId].effectivePower.HasValue)
+                {
+                    Console.WriteLine("nothing effective to persist in meterId '"+meterId+"'");
                     return;
+                }
             }
 
             //int effective, int buy, int load, int production, int charge, int load_wo_charge
@@ -308,7 +314,7 @@ namespace SMLReader
                 }
                 else
                 {
-                    //Console.WriteLine($"Persisted instantanious: {pow} effective, {pow+prod} load, {prod} production");
+                    Console.WriteLine($"Persisted instantanious: {pow} effective, {pow+prod} load, {prod} production");
                 }
             }
         }
@@ -316,6 +322,7 @@ namespace SMLReader
         private static void MessagePipe_DocumentAvailable(object sender, SMLDocumentEventArgs e)
         {
             var meterId = ((MessagePipe)sender).PipeName;
+            Console.WriteLine("Received document in pipe '" + meterId + "'");
             try
             {
                 
@@ -327,7 +334,7 @@ namespace SMLReader
 
                 var obis280Entry = ((SMLGetListResponse)e.Document[1].Body).ValList.Where(m => m.ObisCode != null && m.ObisCode.Register == "1-0:2.8.0*255").FirstOrDefault();
                 PortCurrents[meterId].obis280 = (int)obis280Entry.UIntValue.Value / 10;
-                
+                Console.WriteLine("Pipe '" + meterId + "' document: effective:" + PortCurrents[meterId].effectivePower.ToString() +", obis180: " + PortCurrents[meterId].obis180.ToString() + ", obis280: " + PortCurrents[meterId].obis280);
 
             }
             catch (Exception ex)
@@ -335,14 +342,15 @@ namespace SMLReader
                 PortCurrents[meterId].effectivePower = null;
                 HandleError(ex, "Could not read effetive Power from SML Message. Skipping this point: {0}");
             }
-            try
-            {
-                port.Close();
-            }
-            catch (IOException ex)
-            {
-                HandleError(ex, "Unable to close serial port Port. Anyway continuing. {0}");
-            }
+            //try
+            //{
+            //    foreach (var port in ports)
+            //        port.Close();
+            //}
+            //catch (IOException ex)
+            //{
+            //    HandleError(ex, "Unable to close serial port Port. Anyway continuing. {0}");
+            //}
             ((MessagePipe)sender).Reset();
             Persist();
         }
