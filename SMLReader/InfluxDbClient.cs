@@ -7,6 +7,12 @@ using System.Threading.Tasks;
 
 namespace SMLReader
 {
+    public class IntValue
+    {
+        public string Name;
+        public int Value;
+    }
+
     class SMLPowerInfluxDBClient : IDisposable
     {
         private readonly string token;
@@ -35,13 +41,24 @@ namespace SMLReader
 
         }
 
-        public void AddEffectivePoint(string Measurement, int effective, int buy, int load, int production, int charge, int load_wo_charge)
+        public void AddEffectivePoint(string Measurement, IEnumerable<IntValue> values) //string Measurement, int effective, int buy, int load, int production, int charge, int load_wo_charge
         {
             long timestamp = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
-            var point = $"{Measurement} effective={effective}i,buy={buy}i,load={load}i,production={production}i,charge={charge}i,load_wo_charge={load_wo_charge}i {timestamp}";
+            StringBuilder pointString = new StringBuilder();
+            pointString.Append(Measurement + " ");
+            for (int i = 0; i < values.Count(); i++)
+            {
+                var val = values.ElementAt(i);
+                pointString.Append(val.Name + "=" + val.Value + "i");
+                if (i < values.Count() - 1)
+                    pointString.Append(',');
+            }
+            pointString.Append(" " + timestamp.ToString());
+            var writeString = pointString.ToString();
+
             if (pointSet.Length > 0)
-                pointSet.Append("\n");
-            pointSet.Append(point);
+                pointSet.Append('\n');
+            pointSet.Append(writeString);
             QueueClear = false;
         }
 
@@ -67,20 +84,29 @@ namespace SMLReader
         }
 
 
-        public async Task<PersistenceResult> PersistCumulative(int Obis280, int Obis180, int yield, int charge)
+        public async Task<PersistenceResult> PersistCumulative(IEnumerable<IntValue> values) //int Obis280, int Obis180, int yield, int charge
         {
 
             long timestamptoday = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds;
-            var pointString = $"cumulative obis180={Obis180}i,obis280={Obis280}i,yield={yield}i,charge={charge}i {timestamptoday}";
-
+            StringBuilder pointString = new StringBuilder();
+            pointString.Append("cumulative ");
+            for (int i = 0; i < values.Count(); i++)
+            {
+                var val = values.ElementAt(i);
+                pointString.Append(val.Name + "=" + val.Value + "i");
+                if (i < values.Count() - 1)
+                    pointString.Append(',');
+            }
+            pointString.Append(" " + timestamptoday.ToString());
+            var writeString = pointString.ToString();
             var response = await client.PostAsync($"write?bucket={cumulativeBucket}&org={org}&precision=s", new StringContent(
-                    pointString
+                    writeString
                 ));
             PersistenceResult result = new PersistenceResult();
             result.IsSuccessMessage = response.IsSuccessStatusCode;
             result.ErrorMessage = await response.Content.ReadAsStringAsync();
             result.ReturnCode = (int)response.StatusCode;
-            result.UnwrittenPoints = result.IsSuccessMessage ? "" : pointString;
+            result.UnwrittenPoints = result.IsSuccessMessage ? "" : writeString;
             return result;
         }
     }

@@ -8,12 +8,14 @@ namespace SMLParser
 {
     public class MessagePipe
     {
+        public string PipeName { get; set; }
         System.IO.MemoryStream SourceStream;
         public event EventHandler<SMLDocumentEventArgs> DocumentAvailable;
         private ulong messageCount = 0;
 
-        public MessagePipe()
+        public MessagePipe(string pipeName)
         {
+            PipeName = pipeName;
             SourceStream = new System.IO.MemoryStream();
         }
 
