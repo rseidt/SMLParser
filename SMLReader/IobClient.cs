@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace SMLReader
@@ -91,25 +88,6 @@ namespace SMLReader
             {
                 throw new ApplicationException("Could not update power data due to unexpected http status: " + response.StatusCode);
             }
-
-
-
-
-
-
-                /*
-                 * http://ip:8087/setBulk?hm-rpc.0.FEQ1234567:1.LEVEL=0.7&Anwesenheit=0&prettyPrint
-      [
-        {
-          "id": "hm-rpc.0.FEQ1234567:1.LEVEL",
-          "val": "0.7"
-        },
-        {
-          "error": "error: datapoint \"Anwesenheit\" not found"
         }
-      ]
-    You can send this request as POST too.
-                */
-            }
     }
 }

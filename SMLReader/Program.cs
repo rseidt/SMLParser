@@ -11,8 +11,6 @@ namespace SMLReader
 {
     internal class Currents
     {
-
-
         internal int? obis180;
         internal int? obis280;
         internal int? effectivePower;
@@ -22,8 +20,6 @@ namespace SMLReader
 
     class SMLReader
     {
-
-
         static ManualResetEvent quitEvent = new ManualResetEvent(false);
 
         static readonly Dictionary<string, MessagePipe> MessagePipes = new Dictionary<string, MessagePipe>();
@@ -31,6 +27,8 @@ namespace SMLReader
         static SMLPowerInfluxDBClient influxClient;
         static PvClient pvClient;
         static IobClient iobClient;
+
+        private static bool debug = false;
 
         private static List<SerialPort> ports = new List<SerialPort>();
 
@@ -55,10 +53,10 @@ namespace SMLReader
 
         public static void Main(string[] args)
         {
-            if (args.Length != 9)
+            if (args.Length != 9 && args.Length != 10)
             {
-                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPorts] [meterIDs] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl] [IOBrokerSimpleApiUrl]");
-                Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0,/dev/ttyUSB1 total,heating http://influxdb.fritz.box:8086/ xxxx-xxxxx== myEffectiveBucket myCumulativeBucket myOrg http://pv.fritz.box http://iobroker:8087/");
+                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPorts] [meterIDs] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl] [IOBrokerSimpleApiUrl] [(optional):'debug']");
+                Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0,/dev/ttyUSB1 total,heating http://influxdb.fritz.box:8086/ xxxx-xxxxx== myEffectiveBucket myCumulativeBucket myOrg http://pv.fritz.box http://iobroker:8087/ debug");
 
                 return;
             }
@@ -72,11 +70,15 @@ namespace SMLReader
             org = args[6];
             pvUrl = args[7];
             ioBrokerApiUrl = args[8];
+            if (args.Length == 10 && args[9] == "debug")
+            {
+                debug = true;
+            }
             string[] portsList = serialPorts.Split(',');
             string[] meterIDsList = meterIDs.Split(',');
             if (meterIDsList.Length != portsList.Length)
             {
-                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPorts] [meterIDs] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl] [IOBrokerSimpleApiUrl]");
+                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPorts] [meterIDs] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl] [IOBrokerSimpleApiUrl] [(optional):'debug']");
                 Console.WriteLine("Error: meterIDs List length must be equal to serialPorts List length.");
 
                 return;
@@ -84,7 +86,7 @@ namespace SMLReader
 
             if (!meterIDsList.Any(s => s=="total"))
             {
-                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPorts] [meterIDs] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl] [IOBrokerSimpleApiUrl]");
+                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPorts] [meterIDs] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl] [IOBrokerSimpleApiUrl] [(optional):'debug']");
                 Console.WriteLine("Error: There must be one meterID with the id 'total'");
 
                 return;
@@ -135,26 +137,13 @@ namespace SMLReader
 
             Timer persistTimer = new Timer(async (state) =>
             {
-                Console.WriteLine("Starting instantanious Timer");
-                //foreach (var port in ports)
-                //{
-                //    try
-                //    {
-                //        if (!port.IsOpen)
-                //        {
-                //            port.Open();
-                //        }
-                //    }
-                //    catch (Exception ex)
-                //    {
-                //        HandleError(ex, "Error occured while trying to open serial port: {0}");
-                //        Environment.Exit(1);
-                //    }
-                //}
+                if (debug)
+                    Console.WriteLine("Starting instantanious Timer");
                 try
                 {
                     SMLReader.pvProduction = pvClient.GetCurrentProduction().Result;
-                    Console.WriteLine("Received '" + pvProduction.Value.ToString() + "' as PV production");
+                    if (debug)
+                        Console.WriteLine("Received '" + pvProduction.Value.ToString() + "' as PV production");
 
                 }
                 catch (Exception ex)
@@ -165,7 +154,8 @@ namespace SMLReader
                 try
                 {
                     SMLReader.chargingPower = iobClient.GetCurrentChargingPower().Result;
-                    Console.WriteLine("Received '" + chargingPower.Value.ToString() + "' as Charging power");
+                    if (debug) 
+                        Console.WriteLine("Received '" + chargingPower.Value.ToString() + "' as Charging power");
                 }
                 catch (Exception ex)
                 {
@@ -178,7 +168,8 @@ namespace SMLReader
 
             Timer persistCumulative = new Timer(async (state) =>
             {
-                Console.WriteLine("Start cumulative timer");
+                if (debug) 
+                    Console.WriteLine("Start cumulative timer");
                 try
                 {
                     await PersistCumulative();
@@ -211,6 +202,8 @@ namespace SMLReader
             {
                 if (!PortCurrents[meterId].obis180.HasValue || !PortCurrents[meterId].obis280.HasValue)
                 {
+                    if (debug)
+                        Console.WriteLine("no cumulative Values in meterID '" + meterId + "'");
                     return false;
                 }
             }
@@ -238,6 +231,14 @@ namespace SMLReader
             }
             else
             {
+                if (debug)
+                {
+                    Console.WriteLine("Persisted cumulative values:");
+                    foreach (var val in vals)
+                    {
+                        Console.WriteLine("\t" + val.Name + ": " + val.Value);
+                    }
+                }
                 return true;
             }
         }
@@ -252,19 +253,20 @@ namespace SMLReader
         {
             if (!SMLReader.pvProduction.HasValue || !SMLReader.chargingPower.HasValue)
             {
-                Console.WriteLine("nothing effective to persist in pvProduction or charging Power");
+                if (debug)
+                    Console.WriteLine("nothing effective to persist in pvProduction or charging Power");
                 return;
             }
             foreach (var meterId in PortCurrents.Keys)
             {
                 if (!PortCurrents[meterId].effectivePower.HasValue)
                 {
-                    Console.WriteLine("nothing effective to persist in meterId '"+meterId+"'");
+                    if (debug)
+                        Console.WriteLine("nothing effective to persist in meterId '"+meterId+"'");
                     return;
                 }
             }
 
-            //int effective, int buy, int load, int production, int charge, int load_wo_charge
             var vals = new List<IntValue>();
             var prod = pvProduction.Value;
             vals.Add(new IntValue { Name = "production", Value = prod });
@@ -296,10 +298,6 @@ namespace SMLReader
             {
                 HandleError(ex, "Error during persisting to iobroker. Skipping.");
             }
-            //pvProduction = null;
-            //PortCurrents["total"].effectivePower = null;
-
-            
 
             if (!influxClient.QueueClear)
             {
@@ -317,7 +315,8 @@ namespace SMLReader
                 }
                 else
                 {
-                    Console.WriteLine($"Persisted instantanious: {pow} effective, {pow+prod} load, {prod} production");
+                    if (debug)
+                        Console.WriteLine($"Persisted instantanious: {pow} effective, {pow+prod} load, {prod} production");
                 }
             }
         }
@@ -325,7 +324,8 @@ namespace SMLReader
         private static void MessagePipe_DocumentAvailable(object sender, SMLDocumentEventArgs e)
         {
             var meterId = ((MessagePipe)sender).PipeName;
-            Console.WriteLine("Received document in pipe '" + meterId + "'");
+            if (debug)
+                Console.WriteLine("Received document in pipe '" + meterId + "'");
             try
             {
                 
@@ -337,7 +337,8 @@ namespace SMLReader
 
                 var obis280Entry = ((SMLGetListResponse)e.Document[1].Body).ValList.Where(m => m.ObisCode != null && m.ObisCode.Register == "1-0:2.8.0*255").FirstOrDefault();
                 PortCurrents[meterId].obis280 = (int)obis280Entry.UIntValue.Value / 10;
-                Console.WriteLine("Pipe '" + meterId + "' document: effective:" + PortCurrents[meterId].effectivePower.ToString() +", obis180: " + PortCurrents[meterId].obis180.ToString() + ", obis280: " + PortCurrents[meterId].obis280);
+                if (debug)
+                    Console.WriteLine("Pipe '" + meterId + "' document: effective:" + PortCurrents[meterId].effectivePower.ToString() +", obis180: " + PortCurrents[meterId].obis180.ToString() + ", obis280: " + PortCurrents[meterId].obis280);
 
             }
             catch (Exception ex)
@@ -345,17 +346,7 @@ namespace SMLReader
                 PortCurrents[meterId].effectivePower = null;
                 HandleError(ex, "Could not read effetive Power from SML Message. Skipping this point: {0}");
             }
-            //try
-            //{
-            //    foreach (var port in ports)
-            //        port.Close();
-            //}
-            //catch (IOException ex)
-            //{
-            //    HandleError(ex, "Unable to close serial port Port. Anyway continuing. {0}");
-            //}
             ((MessagePipe)sender).Reset();
-            Persist();
         }
 
         private static void P_DataReceived(object sender, SerialDataReceivedEventArgs e)
