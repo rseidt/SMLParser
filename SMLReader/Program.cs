@@ -149,27 +149,28 @@ namespace SMLReader
                         Environment.Exit(1);
                     }
                 }
-                    try
-                    {
-                        pvProduction = pvClient.GetCurrentProduction().Result;
+                try
+                {
+                    pvProduction = pvClient.GetCurrentProduction().Result;
+                    Console.WriteLine("Received '" + pvProduction.Value.ToString() + "' as PV production");
 
-                    }
+                }
 
-                    catch (Exception ex)
-                    {
-                        pvProduction = null;
-                        HandleError(ex, "Could not query pv production. Skipping this point: {0}");
-                    }
-                    try
-                    {
-                        chargingPower = iobClient.GetCurrentChargingPower().Result;
-
-                    }
-                    catch (Exception ex)
-                    {
-                        chargingPower = null;
-                        HandleError(ex, "Could not query charging power. Skipping this point: {0}");
-                    }
+                catch (Exception ex)
+                {
+                    pvProduction = null;
+                    HandleError(ex, "Could not query pv production. Skipping this point: {0}");
+                }
+                try
+                {
+                    chargingPower = iobClient.GetCurrentChargingPower().Result;
+                    Console.WriteLine("Received '" + chargingPower.Value.ToString() + "' as Charging power");
+                }
+                catch (Exception ex)
+                {
+                    chargingPower = null;
+                    HandleError(ex, "Could not query charging power. Skipping this point: {0}");
+                }
 
                 await Persist();
             }, null, 0, 10000);
