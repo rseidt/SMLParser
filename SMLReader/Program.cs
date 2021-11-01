@@ -54,7 +54,7 @@ namespace SMLReader
 
         public static void Main(string[] args)
         {
-            if (args.Length != 8)
+            if (args.Length != 9)
             {
                 Console.WriteLine("Usage: dotnet SMLReader.dll [serialPorts] [meterIDs] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl] [IOBrokerSimpleApiUrl]");
                 Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0,/dev/ttyUSB1 total,heating http://influxdb.fritz.box:8086/ xxxx-xxxxx== myEffectiveBucket myCumulativeBucket myOrg http://pv.fritz.box http://iobroker:8087/");
