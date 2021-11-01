@@ -121,6 +121,7 @@ namespace SMLReader
                     Currents c = new Currents();
                     PortCurrents.Add(sMeterId, c);
                     port.DataReceived += P_DataReceived;
+                    port.Open();
                 }
                 catch (IOException ex)
                 {
@@ -134,41 +135,41 @@ namespace SMLReader
 
             Timer persistTimer = new Timer(async (state) =>
             {
-                Console.WriteLine("Starting Timer");
-                foreach (var port in ports)
-                {
-                    try
-                    {
-                        if (!port.IsOpen)
-                        {
-                            port.Open();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        HandleError(ex, "Error occured while trying to open serial port: {0}");
-                        Environment.Exit(1);
-                    }
-                }
+                Console.WriteLine("Starting instantanious Timer");
+                //foreach (var port in ports)
+                //{
+                //    try
+                //    {
+                //        if (!port.IsOpen)
+                //        {
+                //            port.Open();
+                //        }
+                //    }
+                //    catch (Exception ex)
+                //    {
+                //        HandleError(ex, "Error occured while trying to open serial port: {0}");
+                //        Environment.Exit(1);
+                //    }
+                //}
                 try
                 {
-                    pvProduction = pvClient.GetCurrentProduction().Result;
+                    SMLReader.pvProduction = pvClient.GetCurrentProduction().Result;
                     Console.WriteLine("Received '" + pvProduction.Value.ToString() + "' as PV production");
 
                 }
                 catch (Exception ex)
                 {
-                    pvProduction = null;
+                    SMLReader.pvProduction = null;
                     HandleError(ex, "Could not query pv production. Skipping this point: {0}");
                 }
                 try
                 {
-                    chargingPower = iobClient.GetCurrentChargingPower().Result;
+                    SMLReader.chargingPower = iobClient.GetCurrentChargingPower().Result;
                     Console.WriteLine("Received '" + chargingPower.Value.ToString() + "' as Charging power");
                 }
                 catch (Exception ex)
                 {
-                    chargingPower = null;
+                    SMLReader.chargingPower = null;
                     HandleError(ex, "Could not query charging power. Skipping this point: {0}");
                 }
 
@@ -177,6 +178,7 @@ namespace SMLReader
 
             Timer persistCumulative = new Timer(async (state) =>
             {
+                Console.WriteLine("Start cumulative timer");
                 try
                 {
                     await PersistCumulative();
@@ -248,7 +250,7 @@ namespace SMLReader
 
         private static async Task Persist()
         {
-            if (!pvProduction.HasValue || !chargingPower.HasValue)
+            if (!SMLReader.pvProduction.HasValue || !SMLReader.chargingPower.HasValue)
             {
                 Console.WriteLine("nothing effective to persist in pvProduction or charging Power");
                 return;
@@ -294,8 +296,8 @@ namespace SMLReader
             {
                 HandleError(ex, "Error during persisting to iobroker. Skipping.");
             }
-            pvProduction = null;
-            PortCurrents["total"].effectivePower = null;
+            //pvProduction = null;
+            //PortCurrents["total"].effectivePower = null;
 
             
 
