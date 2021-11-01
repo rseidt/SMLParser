@@ -20,7 +20,7 @@ namespace SMLReader
 
 
 
-    class SMLReder
+    class SMLReader
     {
 
 
@@ -134,6 +134,7 @@ namespace SMLReader
 
             Timer persistTimer = new Timer(async (state) =>
             {
+                Console.WriteLine("Starting Timer");
                 foreach (var port in ports)
                 {
                     try
@@ -155,7 +156,6 @@ namespace SMLReader
                     Console.WriteLine("Received '" + pvProduction.Value.ToString() + "' as PV production");
 
                 }
-
                 catch (Exception ex)
                 {
                     pvProduction = null;
