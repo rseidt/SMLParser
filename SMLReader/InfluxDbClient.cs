@@ -41,7 +41,7 @@ namespace SMLReader
 
         }
 
-        public void AddEffectivePoint(string Measurement, IEnumerable<IntValue> values) //string Measurement, int effective, int buy, int load, int production, int charge, int load_wo_charge
+        public StringBuilder AddEffectivePoint(string Measurement, IEnumerable<IntValue> values) //string Measurement, int effective, int buy, int load, int production, int charge, int load_wo_charge
         {
             long timestamp = (long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalMilliseconds;
             StringBuilder pointString = new StringBuilder();
@@ -60,6 +60,7 @@ namespace SMLReader
                 pointSet.Append('\n');
             pointSet.Append(writeString);
             QueueClear = false;
+            return pointSet;
         }
 
         public void Dispose()

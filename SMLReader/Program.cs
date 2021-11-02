@@ -138,7 +138,7 @@ namespace SMLReader
             Timer persistTimer = new Timer(async (state) =>
             {
                 if (debug)
-                    Console.WriteLine("Starting instantanious Timer");
+                    Console.WriteLine("Starting instantanious timer");
                 try
                 {
                     SMLReader.pvProduction = pvClient.GetCurrentProduction().Result;
@@ -198,6 +198,7 @@ namespace SMLReader
                 influxClient.Dispose();
                 pvClient.Dispose();
             };
+            
             quitEvent.WaitOne();
 
         }
@@ -292,7 +293,9 @@ namespace SMLReader
                     vals.Add(new IntValue { Name = meterId + "_effective", Value = PortCurrents[meterId].effectivePower.Value });
             }
 
-            influxClient.AddEffectivePoint("instantanious", vals);
+            var sb = influxClient.AddEffectivePoint("instantanious", vals);
+            if (debug)
+                Console.WriteLine(sb.ToString());
             try
             {
                 var pdresult = await iobClient.UpdatePowerData(
