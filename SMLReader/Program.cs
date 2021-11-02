@@ -135,55 +135,11 @@ namespace SMLReader
                 
             }
 
-            Timer persistTimer = new Timer(async (state) =>
-            {
-                if (debug)
-                    Console.WriteLine("Starting instantanious timer");
-                try
-                {
-                    SMLReader.pvProduction = pvClient.GetCurrentProduction().Result;
-                    if (debug)
-                        Console.WriteLine("Received '" + pvProduction.Value.ToString() + "' as PV production");
+            System.Timers.Timer persistEffectiveTimer = new System.Timers.Timer(10000);
+            persistEffectiveTimer.Elapsed += PersistEffectiveTimer_Elapsed;
 
-                }
-                catch (Exception ex)
-                {
-                    SMLReader.pvProduction = null;
-                    HandleError(ex, "Could not query pv production. Skipping this point: {0}");
-                }
-                try
-                {
-                    SMLReader.chargingPower = iobClient.GetCurrentChargingPower().Result;
-                    if (debug) 
-                        Console.WriteLine("Received '" + chargingPower.Value.ToString() + "' as Charging power");
-                }
-                catch (Exception ex)
-                {
-                    SMLReader.chargingPower = null;
-                    HandleError(ex, "Could not query charging power. Skipping this point: {0}");
-                }
-                try
-                {
-                    await Persist();
-                }
-                catch (Exception ex)
-                {
-                    HandleError(ex, "Could not persist effective values: {0}");
-                }
-            }, null, 0, 10000);
-
-            Timer persistCumulative = new Timer(async (state) =>
-            {
-                if (debug) 
-                    Console.WriteLine("Start cumulative timer");
-                try
-                {
-                    await PersistCumulative();
-                } catch (Exception ex)
-                {
-                    HandleError(ex, "Could not persist cumulative values: {0}");
-                }
-            }, null, 5000, 600000);
+            System.Timers.Timer persistCoumulativeTimer = new System.Timers.Timer(60000);
+            persistCoumulativeTimer.Elapsed += PersistCoumulativeTimer_Elapsed;
 
             Console.CancelKeyPress += (sender, eArgs) =>
             {
@@ -200,6 +156,58 @@ namespace SMLReader
             };
             
             quitEvent.WaitOne();
+
+        }
+
+        private static async void PersistEffectiveTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (debug)
+                Console.WriteLine("Starting instantanious timer");
+            try
+            {
+                SMLReader.pvProduction = pvClient.GetCurrentProduction().Result;
+                if (debug)
+                    Console.WriteLine("Received '" + pvProduction.Value.ToString() + "' as PV production");
+
+            }
+            catch (Exception ex)
+            {
+                SMLReader.pvProduction = null;
+                HandleError(ex, "Could not query pv production. Skipping this point: {0}");
+            }
+            try
+            {
+                SMLReader.chargingPower = iobClient.GetCurrentChargingPower().Result;
+                if (debug)
+                    Console.WriteLine("Received '" + chargingPower.Value.ToString() + "' as Charging power");
+            }
+            catch (Exception ex)
+            {
+                SMLReader.chargingPower = null;
+                HandleError(ex, "Could not query charging power. Skipping this point: {0}");
+            }
+            try
+            {
+                await Persist();
+            }
+            catch (Exception ex)
+            {
+                HandleError(ex, "Could not persist effective values: {0}");
+            }
+        }
+
+        private static async void PersistCoumulativeTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (debug)
+                Console.WriteLine("Start cumulative timer");
+            try
+            {
+                await PersistCumulative();
+            }
+            catch (Exception ex)
+            {
+                HandleError(ex, "Could not persist cumulative values: {0}");
+            }
 
         }
 
