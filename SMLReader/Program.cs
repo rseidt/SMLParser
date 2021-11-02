@@ -274,6 +274,9 @@ namespace SMLReader
                 }
             }
 
+            if (debug)
+                Console.WriteLine("Values available. Persisting...");
+
             var vals = new List<IntValue>();
             var prod = pvProduction.Value;
             vals.Add(new IntValue { Name = "production", Value = prod });
@@ -291,6 +294,15 @@ namespace SMLReader
             {
                 if (meterId != "total")
                     vals.Add(new IntValue { Name = meterId + "_effective", Value = PortCurrents[meterId].effectivePower.Value });
+            }
+
+            if (debug)
+            {
+                Console.WriteLine("Collected the following values:");
+                foreach (var val in vals)
+                {
+                    Console.WriteLine("Name: " + val.Name + ", Value: " + val.Value);
+                }
             }
 
             var sb = influxClient.AddEffectivePoint("instantanious", vals);
