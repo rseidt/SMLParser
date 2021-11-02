@@ -91,6 +91,9 @@ namespace SMLReader
 
                 return;
             }
+
+            Console.WriteLine("Started SMLReader.");
+
             influxClient = new SMLPowerInfluxDBClient(
              influxDb,
              token,
