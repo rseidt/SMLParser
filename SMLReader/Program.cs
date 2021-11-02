@@ -162,8 +162,14 @@ namespace SMLReader
                     SMLReader.chargingPower = null;
                     HandleError(ex, "Could not query charging power. Skipping this point: {0}");
                 }
-
-                await Persist();
+                try
+                {
+                    await Persist();
+                }
+                catch (Exception ex)
+                {
+                    HandleError(ex, "Could not persist effective values: {0}");
+                }
             }, null, 0, 10000);
 
             Timer persistCumulative = new Timer(async (state) =>
