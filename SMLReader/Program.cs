@@ -137,10 +137,11 @@ namespace SMLReader
 
             System.Timers.Timer persistEffectiveTimer = new System.Timers.Timer(10000);
             persistEffectiveTimer.Elapsed += PersistEffectiveTimer_Elapsed;
+            persistEffectiveTimer.Start();
 
-            System.Timers.Timer persistCoumulativeTimer = new System.Timers.Timer(60000);
-            persistCoumulativeTimer.Elapsed += PersistCoumulativeTimer_Elapsed;
-
+            System.Timers.Timer persistCumulativeTimer = new System.Timers.Timer(60000);
+            persistCumulativeTimer.Elapsed += PersistCoumulativeTimer_Elapsed;
+            persistCumulativeTimer.Start();
             Console.CancelKeyPress += (sender, eArgs) =>
             {
                 var result = influxClient.PersistEffective().Result;
