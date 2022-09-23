@@ -124,10 +124,10 @@ namespace SMLReader
                     if (debug)
                         Console.WriteLine("Received mqtt message: " + message);
                     GrowattStatus status = Newtonsoft.Json.JsonConvert.DeserializeObject<GrowattStatus>(message);
-                    if (status.InverterStatus == -1)
+                    if (status.InverterStatus != 1)
                     {
                         pvProduction2 = 0;
-                        yield2 = 0;
+                        yield2 = null;
                     }
                     else
                     {
@@ -261,7 +261,10 @@ namespace SMLReader
             List<IntValue> vals = new List<IntValue>();
             var yield = pvClient.GetTotalYield().Result;
             vals.Add(new IntValue { Name = "yield", Value = yield });
-            vals.Add(new IntValue { Name = "yield2", Value = yield2 ?? 0 });
+            if (yield2.HasValue)
+            {
+                vals.Add(new IntValue { Name = "yield2", Value = yield2.Value });
+            }
             var charge = iobClient.GetTotalchargingConsumption().Result * 1000;
             vals.Add(new IntValue { Name = "charge", Value = Convert.ToInt32(charge)});
             foreach (string meterId in PortCurrents.Keys)
