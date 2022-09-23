@@ -6,28 +6,62 @@ using System.Threading.Tasks;
 
 namespace SMLReader
 {
-    public class OnlineStatus
-    {
-        public string InverterStatus { get; set;  } //: "Normal",
-        public decimal DcVoltage { get; set; }
-        public decimal AcFreq { get; set; }
-        public decimal AcVoltage { get; set; }
-        public decimal AcPower { get; set; }
-        public decimal EnergyToday { get; set; }
-        public decimal EnergyTotal { get; set; }
-        public long OperatingTime { get; set; }
-        public decimal Temperature { get; set; }
-        public int AccumulatedEnergy { get; set; }
-        public int Cnt { get; set; }
-    }
-
     public class GrowattStatus
     {
         public int InverterStatus { get; set; }
-        public decimal PV1EnergyTotal { get; set; }
+        public decimal InputPower { get; set; }
+        public decimal PV1Voltage { get; set; }
+        public decimal PV1InputCurrent { get; set; }
+        public decimal PV1InputPower { get; set; }
+        public decimal PV2Voltage { get; set; }
+        public decimal PV2InputCurrent { get; set; }
+        public decimal PV2InputPower { get; set; }
         public decimal OutputPower { get; set; }
+        public decimal GridFrequency { get; set; }
+        public decimal L1ThreePhaseGridVoltage { get; set; }
+        public decimal L1ThreePhaseGridOutputCurrent { get; set; }
+        public decimal L1ThreePhaseGridOutputPower { get; set; }
+        public decimal L2ThreePhaseGridVoltage { get; set; }
+        public decimal L2ThreePhaseGridOutputCurrent { get; set; }
+        public decimal L2ThreePhaseGridOutputPower { get; set; }
+        public decimal L3ThreePhaseGridVoltage { get; set; }
+        public decimal L3ThreePhaseGridOutputCurrent { get; set; }
+        public decimal L3ThreePhaseGridOutputPower { get; set; }
+        public decimal TodayGenerateEnergy { get; set; }
+        public decimal TotalGenerateEnergy { get; set; }
+        public decimal TWorkTimeTotal { get; set; }
+        public decimal PV1EnergyToday { get; set; }
+        public decimal PV1EnergyTotal { get; set; }
+        public decimal PV2EnergyToday { get; set; }
+        public decimal PV2EnergyTotal { get; set; }
+        public decimal PVEnergyTotal { get; set; }
+        public decimal InverterTemperature { get; set; }
+        public decimal TemperatureInsideIPM { get; set; }
+        public decimal BoostTemperature { get; set; }
+        public decimal DischargePower { get; set; }
+        public decimal ChargePower { get; set; }
+        public decimal BatteryVoltage { get; set; }
+        public decimal SOC { get; set; }
+        public decimal ACPowerToUser { get; set; }
+        public decimal ACPowerToUserTotal { get; set; }
+        public decimal ACPowerToGrid { get; set; }
+        public decimal ACPowerToGridTotal { get; set; }
+        public decimal INVPowerToLocalLoad { get; set; }
+        public decimal INVPowerToLocalLoadTotal { get; set; }
+        public decimal BatteryTemperature { get; set; }
+        public decimal BatteryState { get; set; }
+        public decimal EnergyToUserToday { get; set; }
+        public decimal EnergyToUserTotal { get; set; }
+        public decimal EnergyToGridToday { get; set; }
+        public decimal EnergyToGridTotal { get; set; }
+        public decimal DischargeEnergyToday { get; set; }
+        public decimal DischargeEnergyTotal { get; set; }
+        public decimal ChargeEnergyToday { get; set; }
+        public decimal ChargeEnergyTotal { get; set; }
+        public decimal LocalLoadEnergyToday { get; set; }
+        public decimal LocalLoadEnergyTotal { get; set; }
+        public decimal Mac { get; set; }
+        public decimal Cnt { get; set; }
 
-        //{"InverterStatus":0,"InputPower":0,"PV1Voltage":263.7,"PV1InputCurrent":0,"PV1InputPower":0,"PV2Voltage":0,"PV2InputCurrent":0,"PV2InputPower":0,"OutputPower":0,"GridFrequency":50.02,"L1ThreePhaseGridVoltage":229.7,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"TodayGenerateEnergy":0,"TotalGenerateEnergy":0,"TWorkTimeTotal":0,"PV1EnergyToday":0,"PV1EnergyTotal":0,"PV2EnergyToday":0,"PV2EnergyTotal":0,"PVEnergyTotal":0,"InverterTemperature":12.6,"TemperatureInsideIPM":12.6,"BoostTemperature":0,"DischargePower":0,"ChargePower":0,"BatteryVoltage":0,"SOC":0,"ACPowerToUser":0,"ACPowerToUserTotal":0,"ACPowerToGrid":0,"ACPowerToGridTotal":0,"INVPowerToLocalLoad":0,"INVPowerToLocalLoadTotal":0,"BatteryTemperature":0,"BatteryState":0,"EnergyToUserToday":0,"EnergyToUserTotal":0,"EnergyToGridToday":0,"EnergyToGridTotal":0,"DischargeEnergyToday":0,"DischargeEnergyTotal":0,"ChargeEnergyToday":0,"ChargeEnergyTotal":0,"LocalLoadEnergyToday":0,"LocalLoadEnergyTotal":0,"Mac":"BC:FF:4D:57:2E:30","Cnt":113}
-        //public OnlineStatus Status { get; set; }
     }
 }

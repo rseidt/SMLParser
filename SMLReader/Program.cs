@@ -47,6 +47,8 @@ namespace SMLReader
         private static string org;
         private static string pvUrl;
         private static string ioBrokerApiUrl;
+        private static string mqttServer;
+        private static string mqttTopic;
 
         private const int BaudRate = 9600;
         private const Parity PortParity = Parity.None;
@@ -56,10 +58,10 @@ namespace SMLReader
 
         public static void Main(string[] args)
         {
-            if (args.Length != 9 && args.Length != 10)
+            if (args.Length != 11 && args.Length != 12)
             {
-                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPorts] [meterIDs] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl] [IOBrokerSimpleApiUrl] [(optional):'debug']");
-                Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0,/dev/ttyUSB1 total,heating http://influxdb.fritz.box:8086/ xxxx-xxxxx== myEffectiveBucket myCumulativeBucket myOrg http://pv.fritz.box http://iobroker:8087/ debug");
+                Console.WriteLine("Usage: dotnet SMLReader.dll [serialPorts] [meterIDs] [influxDBUrl] [InfluxAuthToken] [influxEffectiveBucket] [influxCumulativeBucket] [influxOrganization] [PvUrl] [IOBrokerSimpleApiUrl] [mqtt-server] [mqtt-topic] [(optional):'debug']");
+                Console.WriteLine("Example: dotnet SMLReader.dll /dev/ttyUSB0,/dev/ttyUSB1 total,heating http://influxdb.fritz.box:8086/ xxxx-xxxxx== myEffectiveBucket myCumulativeBucket myOrg http://pv.fritz.box http://iobroker:8087/ iobroker.fritz.box /energy/growatt debug");
 
                 return;
             }
@@ -73,7 +75,9 @@ namespace SMLReader
             org = args[6];
             pvUrl = args[7];
             ioBrokerApiUrl = args[8];
-            if (args.Length == 10 && args[9] == "debug")
+            mqttServer = args[9];
+            mqttTopic = args[10];
+            if (args.Length == 12 && args[11] == "debug")
             {
                 debug = true;
             }
@@ -114,7 +118,7 @@ namespace SMLReader
             );
 
             mqttClient = new MqttClient(
-
+                mqttServer, mqttTopic
             );
 
             var task = mqttClient.Connect(async (string message) =>

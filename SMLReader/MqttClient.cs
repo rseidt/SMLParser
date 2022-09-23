@@ -14,7 +14,15 @@ namespace SMLReader
     public class MqttClient : IAsyncDisposable, IDisposable
     {
         private IMqttClient _client = null;
-        private Callback _callback = null; 
+        private Callback _callback = null;
+        private string _topic = null;
+        private string _server = null;
+
+        public MqttClient(string server, string topic)
+        {
+            _topic = topic;
+            _server = server;
+        }
         public async Task Connect(Callback callback)
         {
             var mqttFactory = new MqttFactory();
@@ -24,7 +32,7 @@ namespace SMLReader
             _callback = callback;
 
             // Use builder classes where possible in this project.
-            var mqttClientOptions = new MqttClientOptionsBuilder().WithTcpServer("iobroker.fritz.box").WithCleanSession().Build();
+            var mqttClientOptions = new MqttClientOptionsBuilder().WithTcpServer(_server).WithCleanSession().Build();
 
             // This will throw an exception if the server is not available.
             // The result from this message returns additional data which was sent 
@@ -76,7 +84,7 @@ namespace SMLReader
             };
 
             var mqttSubscribeOptions = mqttFactory.CreateSubscribeOptionsBuilder()
-                .WithTopicFilter(f => { f.WithTopic("energy/growatt"); })
+                .WithTopicFilter(f => { f.WithTopic(_topic); })
                 .Build();
 
             await _client.SubscribeAsync(mqttSubscribeOptions, CancellationToken.None);
@@ -90,7 +98,7 @@ namespace SMLReader
 
 
             var mqttSubscribeOptions = mqttFactory.CreateUnsubscribeOptionsBuilder()
-                .WithTopicFilter("energy/growatt")
+                .WithTopicFilter(_topic)
                 .Build();
 
             await _client.UnsubscribeAsync(mqttSubscribeOptions, CancellationToken.None);

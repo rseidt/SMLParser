@@ -2,7 +2,7 @@
   "profiles": {
     "SMLReader": {
       "commandName": "Project",
-      "commandLineArgs": "\"COM4,COM3\" \"total,house\" \"http://influxdb.fritz.box:8086/\" \"3nRdjfTWJT3P9nxFT9vXeappFpMPuEG8piWmGocS0JvJrrrfzs4stOSeMhwb7qZuJLppNb53xR_sPVVJgTLU5w==\" \"effective_power\" \"cumulative_power\" \"edge\" \"http://pv.fritz.box/\" \"http://iobroker:8087/\""
+      "commandLineArgs": "\"COM4,COM3\" \"total,house\" \"http://influxdb.fritz.box:8086/\" \"3nRdjfTWJT3P9nxFT9vXeappFpMPuEG8piWmGocS0JvJrrrfzs4stOSeMhwb7qZuJLppNb53xR_sPVVJgTLU5w==\" \"effective_power\" \"cumulative_power\" \"edge\" \"http://pv.fritz.box/\" \"http://iobroker:8087/\" \"ipbroker.fritz.box\" \"/energy/growatt\""
     }
   }
 }
