@@ -25,6 +25,7 @@ namespace SMLReader
         static readonly Dictionary<string, MessagePipe> MessagePipes = new Dictionary<string, MessagePipe>();
         static readonly Dictionary<string, Currents> PortCurrents = new Dictionary<string, Currents>();
         static SMLPowerInfluxDBClient influxClient;
+        static MqttClient mqttClient;
         static PvClient pvClient;
         static IobClient iobClient;
 
@@ -33,6 +34,8 @@ namespace SMLReader
         private static List<SerialPort> ports = new List<SerialPort>();
 
         internal static int? pvProduction;
+        internal static int? pvProduction2;
+        internal static int? yield2;
         internal static int? chargingPower;
 
         private static string serialPorts;
@@ -109,7 +112,34 @@ namespace SMLReader
             iobClient = new IobClient(
                 ioBrokerApiUrl
             );
-            
+
+            mqttClient = new MqttClient(
+
+            );
+
+            var task = mqttClient.Connect(async (string message) =>
+            {
+                try
+                {
+                    if (debug)
+                        Console.WriteLine("Received mqtt message: " + message);
+                    GrowattStatus status = Newtonsoft.Json.JsonConvert.DeserializeObject<GrowattStatus>(message);
+                    if (status.InverterStatus == -1)
+                    {
+                        pvProduction2 = 0;
+                        yield2 = 0;
+                    }
+                    else
+                    {
+                        pvProduction2 = Convert.ToInt32(status.OutputPower);
+                        yield2 = Convert.ToInt32(status.PV1EnergyTotal);
+                    }
+                } catch (Exception ex)
+                {
+                    HandleError(ex, "While trying to extract values from Growatt Inverter an error occured: {0}");
+                    return;
+                }
+            });
 
             for (int i = 0; i < portsList.Length; i++)
             {
@@ -133,6 +163,7 @@ namespace SMLReader
                     HandleError(ex, "While instancing the specified port the following Error occured: {0}");
                     influxClient.Dispose();
                     pvClient.Dispose();
+                    mqttClient.Dispose();
                     return;
                 }
                 
@@ -157,6 +188,7 @@ namespace SMLReader
                 }
                 influxClient.Dispose();
                 pvClient.Dispose();
+                mqttClient.Dispose();
             };
             
             quitEvent.WaitOne();
@@ -229,6 +261,7 @@ namespace SMLReader
             List<IntValue> vals = new List<IntValue>();
             var yield = pvClient.GetTotalYield().Result;
             vals.Add(new IntValue { Name = "yield", Value = yield });
+            vals.Add(new IntValue { Name = "yield2", Value = yield2 ?? 0 });
             var charge = iobClient.GetTotalchargingConsumption().Result * 1000;
             vals.Add(new IntValue { Name = "charge", Value = Convert.ToInt32(charge)});
             foreach (string meterId in PortCurrents.Keys)
@@ -265,7 +298,7 @@ namespace SMLReader
 
         private static void HandleError(Exception Ex, string ExtraInfo)
         {
-            Console.WriteLine(String.Format(ExtraInfo, Ex.Message));
+            Console.Error.WriteLine(String.Format(ExtraInfo, Ex.Message));
         }
 
         private static async Task Persist()
@@ -291,6 +324,7 @@ namespace SMLReader
 
             var vals = new List<IntValue>();
             var prod = pvProduction.Value;
+            var prod2 = pvProduction2 ?? 0;
             vals.Add(new IntValue { Name = "production", Value = prod });
             var pow = PortCurrents["total"].effectivePower.Value;
             vals.Add(new IntValue { Name = "effective", Value = pow });
@@ -298,7 +332,7 @@ namespace SMLReader
             vals.Add(new IntValue { Name = "charge", Value = charge });
             var buy = pow > 0 ? pow : 0;
             vals.Add(new IntValue { Name = "buy", Value = buy });
-            var load = pow + prod;
+            var load = pow + prod+prod2;
             vals.Add(new IntValue { Name = "load", Value = load });
             vals.Add(new IntValue { Name = "load_wo_charge", Value = load - charge });
             var delivery = pow < 0 ? pow*-1 : 0;
@@ -323,7 +357,7 @@ namespace SMLReader
             try
             {
                 var pdresult = await iobClient.UpdatePowerData(
-                    prod,
+                    prod + prod2,
                     delivery,
                     load,
                     buy);
