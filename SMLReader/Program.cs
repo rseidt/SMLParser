@@ -326,6 +326,7 @@ namespace SMLReader
             var prod = pvProduction.Value;
             var prod2 = pvProduction2 ?? 0;
             vals.Add(new IntValue { Name = "production", Value = prod });
+            vals.Add(new IntValue { Name = "production2", Value = prod2 });
             var pow = PortCurrents["total"].effectivePower.Value;
             vals.Add(new IntValue { Name = "effective", Value = pow });
             var charge = chargingPower.Value;
