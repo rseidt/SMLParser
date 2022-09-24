@@ -60,7 +60,7 @@ namespace SMLReader
         public decimal ChargeEnergyTotal { get; set; }
         public decimal LocalLoadEnergyToday { get; set; }
         public decimal LocalLoadEnergyTotal { get; set; }
-        public decimal Mac { get; set; }
+        public string Mac { get; set; }
         public decimal Cnt { get; set; }
 
     }
