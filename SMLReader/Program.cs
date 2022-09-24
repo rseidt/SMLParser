@@ -136,7 +136,7 @@ namespace SMLReader
                     else
                     {
                         pvProduction2 = Convert.ToInt32(status.OutputPower);
-                        yield2 = Convert.ToInt32(status.PV1EnergyTotal);
+                        yield2 = Convert.ToInt32(status.PV1EnergyTotal*1000);
                     }
                 } catch (Exception ex)
                 {
