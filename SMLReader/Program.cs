@@ -131,7 +131,7 @@ namespace SMLReader
                     if (status.InverterStatus != 1)
                     {
                         pvProduction2 = 0;
-                        yield2 = null;
+                        //yield2 = null;
                     }
                     else
                     {
