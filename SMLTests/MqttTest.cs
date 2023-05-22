@@ -17,7 +17,7 @@ namespace SMLTests
         [Test]
         public async Task TestMqtt()
         {
-            using (var mqttClient = new MqttClient())
+            using (var mqttClient = new MqttClient("",""))
             {
                 bool breaker = false;
                 await mqttClient.Connect(async (string message) =>
