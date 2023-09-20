@@ -21,9 +21,9 @@ namespace SMLReader
         public async Task<int> GetCurrentChargingPower()
         {
             var allChargingPhaseTasks = new Task<HttpResponseMessage>[3];
-            allChargingPhaseTasks[0] = client.GetAsync("getPlainValue/knx.0.Sensorik.Zentral.Wallbox-Leistung_L3");
-            allChargingPhaseTasks[1] = client.GetAsync("getPlainValue/knx.0.Sensorik.Zentral.Wallbox-Leistung_L2");
-            allChargingPhaseTasks[2] = client.GetAsync("getPlainValue/knx.0.Sensorik.Zentral.Wallbox-Leistung_L1");
+            allChargingPhaseTasks[0] = client.GetAsync("getPlainValue/openknx.0.Sensorik.Zentral.Wallbox-Leistung_L3");
+            allChargingPhaseTasks[1] = client.GetAsync("getPlainValue/openknx.0.Sensorik.Zentral.Wallbox-Leistung_L2");
+            allChargingPhaseTasks[2] = client.GetAsync("getPlainValue/openknx.0.Sensorik.Zentral.Wallbox-Leistung_L1");
 
             var responses = await Task.WhenAll(allChargingPhaseTasks);
             decimal totalPower = 0;
@@ -53,7 +53,7 @@ namespace SMLReader
         public async Task<Int64> GetTotalchargingConsumption()
         {
             var allChargingPhaseTasks = new Task<HttpResponseMessage>[3];
-            var response = await client.GetAsync("getPlainValue/knx.0.Sensorik.Zentral.Wallbox-Z%C3%A4hler");
+            var response = await client.GetAsync("getPlainValue/openknx.0.Sensorik.Zentral.Wallbox-Z%C3%A4hler");
 
             if (response.IsSuccessStatusCode)
             {
