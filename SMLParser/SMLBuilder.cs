@@ -119,11 +119,6 @@ namespace SMLParser
 
         private void WriteLeadingBytes(byte Type, ushort Length)
         {
-            //if (Length == 0)
-            //{
-            //    binaryResult.WriteByte(GetFromNibbles(Type, 1));
-            //    return;
-            //}
             if (!BitConverter.IsLittleEndian)
             {
                 var bytes = BitConverter.GetBytes(Length);

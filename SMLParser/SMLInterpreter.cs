@@ -40,14 +40,6 @@ namespace SMLParser
             return result;
         }
 
-        //private string ConvertToByteString(byte[] value)
-        //{
-        //    string result = "";
-        //    foreach (byte b in value)
-        //        result += b.ToString("x2") + " ";
-        //    return result.Trim();
-        //}
-
         private SMLMessageBody ConvertToMessageBody(RawSequence list)
         {
             if (list.Length != 2)
